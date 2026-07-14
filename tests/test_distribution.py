@@ -182,13 +182,9 @@ def test_wheel_metadata_content_and_isolated_import(tmp_path: Path) -> None:
         archive_names = wheel_archive.namelist()
         assert "st/build/__init__.py" in archive_names
 
-        metadata_names = [
-            name for name in archive_names if name.endswith(".dist-info/METADATA")
-        ]
+        metadata_names = [name for name in archive_names if name.endswith(".dist-info/METADATA")]
         assert len(metadata_names) == 1, f"预期一个 METADATA，实际为：{metadata_names!r}"
-        metadata = BytesParser(policy=default).parsebytes(
-            wheel_archive.read(metadata_names[0])
-        )
+        metadata = BytesParser(policy=default).parsebytes(wheel_archive.read(metadata_names[0]))
 
     assert metadata["Name"] == "spacetime-build"
     assert metadata["Version"] == "0.1.0"
