@@ -12,12 +12,23 @@
 
 ---
 
+## 阶段状态
+
+状态：**代码实现与自动化质量门禁已完成，中文 docstring 详细度人工审查待记录**。
+
+- Python 3.10.11；
+- 完整回归 `51 passed`，无 skip；
+- 整体覆盖率 93%，`st.build.core` 93%，`st.build.release` 93%；
+- Ruff format、Ruff check、Pyright 和 compileall 全部通过；
+- 中文 docstring AST 自动门禁通过，详细度人工审查尚未留下完整记录；
+- 本阶段只完成纯 Python 领域内核，不代表兼容协议、外部适配器、资源任务或 CLI 可用。
+
 ## 执行前硬门禁
 
-- [ ] 运行 `python --version` 记录版本，再运行 `python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"`；第二条命令必须以 exit code 0 对 Python 3.10+ 作非零失败断言，非零时立即停止。
-- [ ] 运行 `python -m pip install -e ".[dev]"`，确认开发依赖安装成功。
-- [ ] 运行 `python -m pytest tests/test_package_import.py tests/test_distribution.py -q`，预期 `3 passed`，wheel 测试不得 skip。
-- [ ] 若当前机器仍只有 Python 3.7，停止本计划的所有功能测试和生产 Python 实现；允许先编辑计划、配置和说明文档，但不得声称第二阶段已开始或通过。
+- [x] 运行 `python --version` 记录版本，再运行 `python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"`；第二条命令必须以 exit code 0 对 Python 3.10+ 作非零失败断言，非零时立即停止。
+- [x] 运行 `python -m pip install -e ".[dev]"`，确认开发依赖安装成功。
+- [x] 运行 `python -m pytest tests/test_package_import.py tests/test_distribution.py -q`，预期 `3 passed`，wheel 测试不得 skip。
+- [x] 已确认当前机器为 Python 3.10.11，不触发 Python 3.7 环境下的停止条件。
 
 ## 文件边界
 
@@ -93,7 +104,7 @@
 - Create: `tests/quality/__init__.py`
 - Create: `tests/quality/test_chinese_documentation.py`
 
-- [ ] **Step 1：在同一次首次 RED 中写 scanner 与全仓门禁测试**
+- [x] **Step 1：在同一次首次 RED 中写 scanner 与全仓门禁测试**
 
 行为 A：
 
@@ -125,7 +136,7 @@
 - Create: `src/st/build/core/errors.py`
 - Create: `tests/core/test_errors.py`
 
-- [ ] **Step 1：RED→GREEN 完成异常继承契约**
+- [x] **Step 1：RED→GREEN 完成异常继承契约**
 
 行为：
 
@@ -143,7 +154,7 @@
 - Create: `src/st/build/core/artifacts.py`
 - Create: `tests/core/test_artifacts.py`
 
-- [ ] **Step 1：RED→GREEN 实现类型化 metadata**
+- [x] **Step 1：RED→GREEN 实现类型化 metadata**
 
 行为：
 
@@ -154,7 +165,7 @@
 - 最小 GREEN：实现 `frozen=True, slots=True` dataclass 和构造后校验；不实现 manifest JSON。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_artifacts.py -q`
 
-- [ ] **Step 2：RED→GREEN 实现持久 Blob 引用**
+- [x] **Step 2：RED→GREEN 实现持久 Blob 引用**
 
 行为：
 
@@ -172,7 +183,7 @@
 - Modify: `src/st/build/core/artifacts.py`
 - Modify: `tests/core/test_artifacts.py`
 
-- [ ] **Step 1：在同一次首次 RED 中实现逻辑路径和集合语义**
+- [x] **Step 1：在同一次首次 RED 中实现逻辑路径和集合语义**
 
 行为：
 
@@ -190,7 +201,7 @@
 - Create: `src/st/build/core/build_records.py`
 - Create: `tests/core/test_build_records.py`
 
-- [ ] **Step 1：RED→GREEN 定义独立可复现 payload**
+- [x] **Step 1：RED→GREEN 定义独立可复现 payload**
 
 行为：
 
@@ -201,7 +212,7 @@
 - 最小 GREEN：只实现不可变 `BuildManifestPayload` 和字段校验，不定义 `BuildManifest`，不计算 ID。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_build_records.py -q`
 
-- [ ] **Step 2：RED→GREEN 分离运行状态**
+- [x] **Step 2：RED→GREEN 分离运行状态**
 
 行为：
 
@@ -220,7 +231,7 @@
 - Create: `src/st/build/core/manifest_codec.py`
 - Create: `tests/core/test_manifest_codec.py`
 
-- [ ] **Step 1：RED→GREEN 定义规范 payload**
+- [x] **Step 1：RED→GREEN 定义规范 payload**
 
 行为：
 
@@ -231,7 +242,7 @@
 - 最小 GREEN：只在领域语义声明为无序的边界按 UTF-8 字节键排序；禁止递归地把所有 list/tuple 排序或去重。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_manifest_codec.py -q`
 
-- [ ] **Step 2：在同一次首次 RED 中实现工厂和完整 ID 契约**
+- [x] **Step 2：在同一次首次 RED 中实现工厂和完整 ID 契约**
 
 行为：
 
@@ -242,7 +253,7 @@
 - 最小 GREEN：`BuildManifest` 构造要求模块私有工厂 token，公开创建只经过 `BuildManifestFactory.create(payload)`；工厂完整编码 payload 后自动计算 ID，调用方不能传入 ID。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_manifest_codec.py -q`
 
-- [ ] **Step 3：RED→GREEN 实现原子读写和完整性校验**
+- [x] **Step 3：RED→GREEN 实现原子读写和完整性校验**
 
 行为：
 
@@ -260,7 +271,7 @@
 - Create: `src/st/build/core/tasks.py`
 - Create: `tests/core/test_tasks.py`
 
-- [ ] **Step 1：在同一次首次 RED 中定义唯一任务规划契约**
+- [x] **Step 1：在同一次首次 RED 中定义唯一任务规划契约**
 
 行为：
 
@@ -271,7 +282,7 @@
 - 最小 GREEN：实现 `TaskSpec`、完整 `TaskPlan`、`@runtime_checkable BuildTask` 和输入/输出模型；`TaskResult.outputs` 使用 tuple 以便检测重复路径。本步不定义 `TaskIdentity`。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_tasks.py -q`
 
-- [ ] **Step 2：RED→GREEN 只从 TaskPlan 生成身份**
+- [x] **Step 2：RED→GREEN 只从 TaskPlan 生成身份**
 
 行为：
 
@@ -289,7 +300,7 @@
 - Create: `src/st/build/core/graph.py`
 - Create: `tests/core/test_graph.py`
 
-- [ ] **Step 1：RED→GREEN 实现不可变图查询**
+- [x] **Step 1：RED→GREEN 实现不可变图查询**
 
 行为：
 
@@ -300,7 +311,7 @@
 - 最小 GREEN：复制并冻结规格和边集合，只实现合法输入的查询；本步明确不做重复名、缺失依赖和自边校验。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_graph.py -q`
 
-- [ ] **Step 2：RED→GREEN 实现局部结构校验**
+- [x] **Step 2：RED→GREEN 实现局部结构校验**
 
 行为：
 
@@ -318,7 +329,7 @@
 - Create: `src/st/build/core/planner.py`
 - Create: `tests/core/test_planner.py`
 
-- [ ] **Step 1：RED→GREEN 检测循环**
+- [x] **Step 1：RED→GREEN 检测循环**
 
 行为：
 
@@ -329,7 +340,7 @@
 - 最小 GREEN：从 `BuildGraph.from_plans` 实现循环检测和稳定路径报告；本步不建立输出 owner 索引，也不提供 `PlannedBuild.layers`。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_graph.py tests/core/test_planner.py -q`
 
-- [ ] **Step 2：RED→GREEN 检测输出冲突和隐式 fan-in**
+- [x] **Step 2：RED→GREEN 检测输出冲突和隐式 fan-in**
 
 行为：
 
@@ -340,7 +351,7 @@
 - 最小 GREEN：按输出路径建立唯一 owner 映射。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_planner.py -q`
 
-- [ ] **Step 3：RED→GREEN 生成确定性执行层**
+- [x] **Step 3：RED→GREEN 生成确定性执行层**
 
 行为：
 
@@ -358,7 +369,7 @@
 - Create: `src/st/build/core/frontier.py`
 - Create: `tests/core/test_frontier.py`
 
-- [ ] **Step 1：RED→GREEN 定义完成证据**
+- [x] **Step 1：RED→GREEN 定义完成证据**
 
 行为：
 
@@ -369,7 +380,7 @@
 - 最小 GREEN：只实现不可变记录；不得只保存“最后任务名”或布尔 completed，本步不实现验证 API。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_frontier.py -q`
 
-- [ ] **Step 2：RED→GREEN 比较当前规划 expected identities 和恢复上下文**
+- [x] **Step 2：RED→GREEN 比较当前规划 expected identities 和恢复上下文**
 
 行为：
 
@@ -380,7 +391,7 @@
 - 最小 GREEN：逐节点先比较 `record.task_identity == expected_identities[task_name]`，再逐字段比较恢复上下文；返回 `VerifiedFrontier(task_names=frozenset(...), outputs=任务名到完整 LogicalArtifact tuple 的不可变映射)`。本步 verifier 只接受全部输出，路径与真实哈希拒绝行为留给下一 RED。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_tasks.py tests/core/test_frontier.py -q`
 
-- [ ] **Step 3：RED→GREEN 校验输出真实哈希**
+- [x] **Step 3：RED→GREEN 校验输出真实哈希**
 
 行为：
 
@@ -391,7 +402,7 @@
 - 最小 GREEN：先拒绝重复路径并比较实际/expected 路径集合，再逐 LogicalArtifact 调用 verifier；只把完整已验证 artifacts 放入 `VerifiedFrontier.outputs` 不可变映射。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_frontier.py -q`
 
-- [ ] **Step 4：RED→GREEN 返回 DAG frontier 而非最后节点**
+- [x] **Step 4：RED→GREEN 返回 DAG frontier 而非最后节点**
 
 行为：
 
@@ -409,7 +420,7 @@
 - Create: `src/st/build/core/executor.py`
 - Create: `tests/core/test_executor.py`
 
-- [ ] **Step 1：RED→GREEN 按计划执行并收集输出**
+- [x] **Step 1：RED→GREEN 按计划执行并收集输出**
 
 行为：
 
@@ -420,7 +431,7 @@
 - 最小 GREEN：实现 `verified_frontier=None` 的单线程同步参考执行器并收集 tuple 输出；本步明确不接受非空 frontier、不校验输出契约、不包装任务异常。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_planner.py tests/core/test_executor.py -q`
 
-- [ ] **Step 2：RED→GREEN 只跳过经验证节点**
+- [x] **Step 2：RED→GREEN 只跳过经验证节点**
 
 行为：
 
@@ -431,7 +442,7 @@
 - 最小 GREEN：执行器只消费 Task 10 已冻结的 `VerifiedFrontier`，不复制身份或哈希判定。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_frontier.py tests/core/test_executor.py -q`
 
-- [ ] **Step 3：RED→GREEN 严格验证 TaskResult 输出契约**
+- [x] **Step 3：RED→GREEN 严格验证 TaskResult 输出契约**
 
 行为：
 
@@ -442,7 +453,7 @@
 - 最小 GREEN：先从 tuple 输出提取逻辑路径并拒绝重复，再比较 `frozenset(actual_paths) == TaskSpec.outputs`；错误消息列出 missing、undeclared、duplicates。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_tasks.py tests/core/test_executor.py -q`
 
-- [ ] **Step 4：RED→GREEN 失败即停止新调度**
+- [x] **Step 4：RED→GREEN 失败即停止新调度**
 
 行为：
 
@@ -461,7 +472,7 @@
 - Create: `src/st/build/release/entries.py`
 - Create: `tests/release/test_entries.py`
 
-- [ ] **Step 1：在同一次首次 RED 中实现发布条目和新旧对象规则**
+- [x] **Step 1：在同一次首次 RED 中实现发布条目和新旧对象规则**
 
 行为：
 
@@ -481,7 +492,7 @@
 - Create: `tests/release/test_snapshots.py`
 - Create: `tests/release/test_manifests.py`
 
-- [ ] **Step 1：RED→GREEN 表达 AB 依赖和 Redirect slice**
+- [x] **Step 1：RED→GREEN 表达 AB 依赖和 Redirect slice**
 
 行为：
 
@@ -492,7 +503,7 @@
 - 最小 GREEN：从 `entries.py` 导入唯一 `ResourceVariant`，实现协议无关分类、membership、单 variant 与交叉引用校验；不包含 AB 数据库索引、`Depend:`、`Redirect:` 或换行规则。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/release/test_entries.py tests/release/test_snapshots.py -q`
 
-- [ ] **Step 2：在同一次首次 RED 中实现 ReleaseManifestPayload、工厂和严格读取**
+- [x] **Step 2：在同一次首次 RED 中实现 ReleaseManifestPayload、工厂和严格读取**
 
 行为：
 
@@ -515,7 +526,7 @@
 - Create: `tests/release/test_bundles.py`
 - Create: `tests/release/test_bundle_codec.py`
 
-- [ ] **Step 1：在同一次首次 RED 中实现 ReleaseBundlePayload、工厂和严格读取**
+- [x] **Step 1：在同一次首次 RED 中实现 ReleaseBundlePayload、工厂和严格读取**
 
 行为：
 
@@ -536,7 +547,7 @@
 - Create: `src/st/build/release/activation.py`
 - Create: `tests/release/test_activation.py`
 
-- [ ] **Step 1：RED→GREEN 分离可变激活记录**
+- [x] **Step 1：RED→GREEN 分离可变激活记录**
 
 行为：
 
@@ -547,7 +558,7 @@
 - 最小 GREEN：实现不可变状态快照和合法状态枚举，不实现状态迁移函数、CDN、CAS 或回滚。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/release/test_bundles.py tests/release/test_activation.py -q`
 
-- [ ] **Step 2：RED→GREEN 限制激活状态迁移**
+- [x] **Step 2：RED→GREEN 限制激活状态迁移**
 
 行为：
 
@@ -565,19 +576,19 @@
 - Modify only if needed: `readme/13_第二阶段领域模型与DAG实施计划.md`
 - Modify only after implementation exists: `README.md`
 
-- [ ] **Step 1：运行完整功能回归**
+- [x] **Step 1：运行完整功能回归**
 
 Run: `python -m pytest -q`
 
 Expected: 全部 PASS，且不存在 Python 版本 skip。
 
-- [ ] **Step 2：强制整体覆盖率 80%**
+- [x] **Step 2：强制整体覆盖率 80%**
 
 Run: `python -m pytest --cov=st.build --cov-report=term-missing --cov-fail-under=80`
 
 Expected: exit code 0；低于 80% 时 pytest 必须失败，不能只在文字中查看百分比。
 
-- [ ] **Step 3：分别强制 core 与 release 覆盖率 90%**
+- [x] **Step 3：分别强制 core 与 release 覆盖率 90%**
 
 Run:
 
@@ -588,7 +599,7 @@ python -m pytest tests/release --cov=st.build.release --cov-report=term-missing 
 
 Expected: 两条命令分别 exit code 0；不得用合并覆盖率掩盖任一包低于 90%。
 
-- [ ] **Step 4：运行格式、静态和字节码检查**
+- [x] **Step 4：运行格式、静态和字节码检查**
 
 Run:
 
@@ -605,7 +616,7 @@ Expected: 全部 exit code 0。
 
 逐个检查 `src/` 和 `tests/` 的模块、类、异常、函数和方法。自动门禁通过不等于详细度通过；确认职责、参数、返回值、异常、约束、副作用，以及确定性、恢复、异常分支等复杂逻辑的中文行内注释。
 
-- [ ] **Step 6：确认架构边界**
+- [x] **Step 6：确认架构边界**
 
 用 `python -m pytest tests/quality/test_chinese_documentation.py -q` 再次确认门禁，并人工确认：
 
