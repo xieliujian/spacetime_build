@@ -43,5 +43,16 @@ Android、iOS、Windows、IL2CPP/SDK、分支、美术辅助和端到端迁移�
 - [分支构建能力实施计划](readme/version_build/29_分支构建能力实施计划.md)
 - [美术辅助能力实施计划](readme/version_build/30_美术辅助能力实施计划.md)
 - [端到端迁移与验收计划](readme/version_build/31_端到端迁移与验收计划.md)
+
+## 正式版本制作资料
+
+- [正式版本制作文档索引](readme/release_build/README.md)
+- [正式版本资源构建与发布设计](readme/release_build/00_正式版本资源构建与发布设计.md)
+
+该目录记录当前确认的十二个独立资源任务、Jenkins 外部编排、版本号、日志、
+本地 CDN 和基础发布流程。相关代码和可执行命令仍处于规划中。
+
+## 开发约束
+
 - [协作与开发约束](AGENTS.md)
 - [项目 Agent 技能](.agents/)
