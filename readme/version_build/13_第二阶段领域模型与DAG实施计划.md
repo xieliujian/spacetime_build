@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.10+、不可变 dataclasses、enum、typing.Protocol、pathlib、hashlib、json、pytest、pytest-cov、Ruff、Pyright。
 
-**设计文档:** `readme/00_全新构建系统设计.md`
+**设计文档:** `readme/version_build/00_全新构建系统设计.md`
 
 ---
 
@@ -573,7 +573,7 @@
 
 **Files:**
 
-- Modify only if needed: `readme/13_第二阶段领域模型与DAG实施计划.md`
+- Modify only if needed: `readme/version_build/13_第二阶段领域模型与DAG实施计划.md`
 - Modify only after implementation exists: `README.md`
 
 - [x] **Step 1：运行完整功能回归**

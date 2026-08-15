@@ -12,7 +12,7 @@ description: 开发、重构或审查 st.build Python 构建系统时使用。�
 读取：
 
 1. `AGENTS.md`；
-2. `readme/00_全新构建系统设计.md`；
+2. `readme/version_build/00_全新构建系统设计.md`；
 3. 当前实施计划；
 4. 即将修改的源码和测试。
 

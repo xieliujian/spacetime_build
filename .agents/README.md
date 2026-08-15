@@ -14,7 +14,7 @@
 Agent 开始工作前应依次读取：
 
 1. 根目录 `AGENTS.md`；
-2. `readme/00_全新构建系统设计.md`；
+2. `readme/version_build/00_全新构建系统设计.md`；
 3. 当前阶段对应的实施计划；
 4. 与任务相关的 `.agents/skills/*/SKILL.md`。
 
