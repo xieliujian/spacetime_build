@@ -15,31 +15,31 @@ from pathlib import Path
 
 import pytest
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.core.manifest_codec import canonical_json_bytes
-from st.build.release.bundles import (
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from core.manifest_codec import canonical_json_bytes
+from release.bundles import (
     RELEASE_BUNDLE_SCHEMA_VERSION,
     ReleaseBundle,
     ReleaseBundlePayload,
 )
-from st.build.release.bundle_codec import (
+from release.bundle_codec import (
     ReleaseBundleFactory,
     read_release_bundle,
     release_bundle_payload_dict,
     write_release_bundle,
 )
-from st.build.release.entries import (
+from release.entries import (
     ReleaseEntry,
     ReleaseObjectOrigin,
     ResourceVariant,
 )
-from st.build.release.manifest_codec import ReleaseManifestFactory
-from st.build.release.manifests import (
+from release.manifest_codec import ReleaseManifestFactory
+from release.manifests import (
     RELEASE_MANIFEST_SCHEMA_VERSION,
     ReleaseManifestPayload,
 )
-from st.build.release.snapshots import (
+from release.snapshots import (
     ReleaseArtifactClass,
     ReleaseMembership,
     ReleaseSnapshot,
@@ -151,7 +151,7 @@ def test_release_bundle_factory_stabilizes_unordered_manifests_and_hashes_all_id
     - schema、main ID、low 存在/ID、baseline 任一变化改变 ID；
     - 直接构造 ``ReleaseBundle`` 失败。
 
-    当 ``st.build.release.bundles`` / ``bundle_codec`` 尚未创建时，测试收集
+    当 ``release.bundles`` / ``bundle_codec`` 尚未创建时，测试收集
     阶段应以 ``ModuleNotFoundError`` 失败。除导入外不产生外部副作用。
     """
     main = _make_manifest(

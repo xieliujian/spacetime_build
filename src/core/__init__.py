@@ -5,7 +5,7 @@
 构建，也不会访问 SVN、Unity、Jenkins 或 CDN。
 """
 
-from st.build.core.errors import (
+from core.errors import (
     ArtifactValidationError,
     BuildError,
     CompatibilityError,

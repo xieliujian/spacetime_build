@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import pytest
 
-from st.build.core.errors import PlanningError
-from st.build.core.planner import BuildPlanner
-from st.build.core.tasks import BuildContext, TaskPlan, TaskSpec
+from core.errors import PlanningError
+from core.planner import BuildPlanner
+from core.tasks import BuildContext, TaskPlan, TaskSpec
 
 
 def _context() -> BuildContext:
@@ -68,7 +68,7 @@ def test_planner_rejects_cycle_with_stable_cycle_path() -> None:
     - 存在循环时抛出 ``PlanningError``，消息包含稳定循环路径；
     - 改变输入 ``TaskPlan`` 排列不改变错误消息。
 
-    当 ``st.build.core.planner`` 尚未创建时，测试收集阶段应以
+    当 ``core.planner`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入与内存构造外不产生外部副作用。
     """
     # a → b → c → a 构成环；另加无关叶子，避免只测最简三角。
@@ -148,7 +148,7 @@ def test_planner_builds_deterministic_layers_and_expected_identity_map() -> None
     """
     import dataclasses
 
-    from st.build.core.tasks import TaskIdentity
+    from core.tasks import TaskIdentity
 
     shared = _plan("shared.base")
     config = _plan("config.build")

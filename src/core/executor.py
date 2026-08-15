@@ -14,11 +14,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import cast
 
-from st.build.core.artifacts import LogicalArtifact
-from st.build.core.errors import ArtifactValidationError, ToolExecutionError
-from st.build.core.frontier import VerifiedFrontier
-from st.build.core.planner import PlannedBuild
-from st.build.core.tasks import (
+from core.artifacts import LogicalArtifact
+from core.errors import ArtifactValidationError, ToolExecutionError
+from core.frontier import VerifiedFrontier
+from core.planner import PlannedBuild
+from core.tasks import (
     ArtifactCollection,
     BuildContext,
     BuildTask,

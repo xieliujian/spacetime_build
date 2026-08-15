@@ -15,26 +15,26 @@ from pathlib import Path
 
 import pytest
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.core.manifest_codec import canonical_json_bytes
-from st.build.release.entries import (
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from core.manifest_codec import canonical_json_bytes
+from release.entries import (
     ReleaseEntry,
     ReleaseObjectOrigin,
     ResourceVariant,
 )
-from st.build.release.manifest_codec import (
+from release.manifest_codec import (
     ReleaseManifestFactory,
     read_release_manifest,
     release_manifest_payload_dict,
     write_release_manifest,
 )
-from st.build.release.manifests import (
+from release.manifests import (
     RELEASE_MANIFEST_SCHEMA_VERSION,
     ReleaseManifest,
     ReleaseManifestPayload,
 )
-from st.build.release.snapshots import (
+from release.snapshots import (
     ReleaseArtifactClass,
     ReleaseMembership,
     ReleaseSnapshot,
@@ -126,7 +126,7 @@ def test_release_manifest_factory_stabilizes_unordered_inputs_and_hashes_all_ide
     - 依赖 tuple 顺序与重复保留；
     - 直接构造 ``ReleaseManifest`` 失败。
 
-    当 ``st.build.release.manifests`` / ``manifest_codec`` 尚未创建时，测试收集
+    当 ``release.manifests`` / ``manifest_codec`` 尚未创建时，测试收集
     阶段应以 ``ModuleNotFoundError`` 失败。除导入外不产生外部副作用。
     """
     entry_z = _ab(

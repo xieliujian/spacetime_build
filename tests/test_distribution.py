@@ -1,7 +1,7 @@
 """验证项目分发包的元数据、文件内容和安装后导入行为。
 
 本模块通过当前解释器调用 pip 构建并安装 wheel，覆盖 setuptools 的 ``src`` 包发现和
-动态版本配置。测试只在 Python 3.10+ 执行，所有产物均写入 pytest 临时目录，不修改
+静态版本配置。测试只在 Python 3.10+ 执行，所有产物均写入 pytest 临时目录，不修改
 源码树、用户环境或旧构建目录。
 """
 
@@ -76,8 +76,8 @@ def _run_checked(
     return result
 
 
-def test_source_build_package_is_not_ignored() -> None:
-    """验证根忽略规则不会把 ``src/st/build`` 源码包排除在 Git 之外。
+def test_source_packages_are_not_ignored() -> None:
+    """验证根忽略规则不会把 ``src/core`` 和 ``src/release`` 排除在 Git 之外。
 
     参数：
         无。
@@ -103,7 +103,8 @@ def test_source_build_package_is_not_ignored() -> None:
             "--verbose",
             "--no-index",
             "--",
-            "src/st/build/__init__.py",
+            "src/core/__init__.py",
+            "src/release/__init__.py",
         ],
         cwd=PROJECT_ROOT,
         check=False,
@@ -180,7 +181,9 @@ def test_wheel_metadata_content_and_isolated_import(tmp_path: Path) -> None:
 
     with zipfile.ZipFile(wheel_path) as wheel_archive:
         archive_names = wheel_archive.namelist()
-        assert "st/build/__init__.py" in archive_names
+        assert "core/__init__.py" in archive_names
+        assert "release/__init__.py" in archive_names
+        assert not any(name == "st/__init__.py" or name.startswith("st/") for name in archive_names)
 
         metadata_names = [name for name in archive_names if name.endswith(".dist-info/METADATA")]
         assert len(metadata_names) == 1, f"预期一个 METADATA，实际为：{metadata_names!r}"
@@ -212,11 +215,12 @@ def test_wheel_metadata_content_and_isolated_import(tmp_path: Path) -> None:
         "import pathlib, sys; "
         f"target = pathlib.Path({str(install_target)!r}).resolve(); "
         f"sys.path.insert(0, {str(install_target)!r}); "
-        "import st.build; "
-        "module_path = pathlib.Path(st.build.__file__).resolve(); "
-        "assert module_path == target / 'st' / 'build' / '__init__.py', module_path; "
-        "assert st.build.__version__ == '0.1.0'; "
-        "print(st.build.__version__)"
+        "import core, release; "
+        "core_path = pathlib.Path(core.__file__).resolve(); "
+        "release_path = pathlib.Path(release.__file__).resolve(); "
+        "assert core_path == target / 'core' / '__init__.py', core_path; "
+        "assert release_path == target / 'release' / '__init__.py', release_path; "
+        "print('ok')"
     )
     isolated_environment = os.environ.copy()
     isolated_environment.pop("PYTHONPATH", None)
@@ -226,4 +230,4 @@ def test_wheel_metadata_content_and_isolated_import(tmp_path: Path) -> None:
         cwd=isolated_working_directory,
         environment=isolated_environment,
     )
-    assert import_result.stdout.strip() == "0.1.0"
+    assert import_result.stdout.strip() == "ok"

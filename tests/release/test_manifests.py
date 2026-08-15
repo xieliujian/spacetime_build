@@ -10,18 +10,18 @@ from __future__ import annotations
 
 import pytest
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.release.entries import (
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from release.entries import (
     ReleaseEntry,
     ReleaseObjectOrigin,
     ResourceVariant,
 )
-from st.build.release.manifests import (
+from release.manifests import (
     RELEASE_MANIFEST_SCHEMA_VERSION,
     ReleaseManifestPayload,
 )
-from st.build.release.snapshots import (
+from release.snapshots import (
     ReleaseArtifactClass,
     ReleaseMembership,
     ReleaseSnapshot,
@@ -95,7 +95,7 @@ def test_release_manifest_payload_locks_variant_and_current_object_versions() ->
     - ``HISTORICAL`` 保留历史 ``object_version``；
     - 哨兵或错误 FileListNo 字符串在 payload 构造时失败。
 
-    当 ``st.build.release.manifests`` 尚未创建时，测试收集阶段应以
+    当 ``release.manifests`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入外不产生外部副作用。
     """
     file_list_no = 123

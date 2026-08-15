@@ -9,23 +9,23 @@ from __future__ import annotations
 
 import pytest
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.release.entries import (
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from release.entries import (
     ReleaseEntry,
     ReleaseObjectOrigin,
     ResourceVariant,
 )
-from st.build.release.manifest_codec import ReleaseManifestFactory
-from st.build.release.manifests import (
+from release.manifest_codec import ReleaseManifestFactory
+from release.manifests import (
     RELEASE_MANIFEST_SCHEMA_VERSION,
     ReleaseManifestPayload,
 )
-from st.build.release.bundles import (
+from release.bundles import (
     RELEASE_BUNDLE_SCHEMA_VERSION,
     ReleaseBundlePayload,
 )
-from st.build.release.snapshots import (
+from release.snapshots import (
     ReleaseArtifactClass,
     ReleaseMembership,
     ReleaseSnapshot,
@@ -118,7 +118,7 @@ def test_release_bundle_payload_accepts_one_main_and_optional_low_with_shared_fi
     - 低清 ``HISTORICAL`` 的历史 ``object_version`` 不被 bundle 二次拒绝；
     - 缺少 main、两个 main、两个 low、FileListNo 不一致均失败。
 
-    当 ``st.build.release.bundles`` 尚未创建时，测试收集阶段应以
+    当 ``release.bundles`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入外不产生外部副作用。
     """
     file_list_no = 123

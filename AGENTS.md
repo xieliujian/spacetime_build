@@ -23,8 +23,8 @@
 ## Python 结构
 
 - 最低版本：Python 3.10。
-- 顶级导入命名空间：`st.build`。
-- 源码采用 `src/st/build/` 布局。
+- 各功能域直接作为顶级导入包，不增加工程名或构建系统名包裹层。
+- 源码采用 `src/<domain>/` 布局，当前已实现 `src/core/` 和 `src/release/`。
 - 核心领域层不得依赖 SVN、Unity、Jenkins 或具体 CDN 实现。
 - 外部系统通过 Protocol 和适配器接入。
 - 构建产物模型与发布模型必须分离。

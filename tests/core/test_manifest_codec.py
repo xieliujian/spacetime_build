@@ -14,15 +14,15 @@ from pathlib import Path
 
 import pytest
 
-from st.build.core.artifacts import (
+from core.artifacts import (
     ArtifactKind,
     ArtifactMetadata,
     BlobRef,
     LogicalArtifact,
 )
-from st.build.core.build_records import BuildManifest, BuildManifestPayload
-from st.build.core.errors import ArtifactValidationError
-from st.build.core.manifest_codec import (
+from core.build_records import BuildManifest, BuildManifestPayload
+from core.errors import ArtifactValidationError
+from core.manifest_codec import (
     BuildManifestFactory,
     build_manifest_payload_dict,
     canonical_json_bytes,
@@ -83,7 +83,7 @@ def test_payload_codec_normalizes_only_unordered_collections() -> None:
     - 依赖 ``("b", "a", "b")`` 在 JSON 中保持同序且保留重复；
     - 规范 JSON 为 UTF-8、无 BOM、``sort_keys=True``、紧凑分隔符。
 
-    当 ``st.build.core.manifest_codec`` 尚未创建时，测试收集阶段应以
+    当 ``core.manifest_codec`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除临时断言外不产生外部副作用。
     """
     art_z = _artifact(

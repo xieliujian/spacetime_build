@@ -3,7 +3,7 @@
 ## 1. 状态与目标
 
 - 文档状态：**设计完成，独立审查通过**。
-- 代码状态：**规划中，`st.build.package` 尚不存在**。
+- 代码状态：**规划中，`package` 尚不存在**。
 - 目标：从固定源码、工具链和已验证 ReleaseBundle 生成可审计 APK/AAB、符号与 PackageManifest。
 - 非目标：不在本模块构建资源、不生成旧协议、不实现具体渠道 SDK、不直接上传生产商店。
 
@@ -22,7 +22,7 @@
 ## 3. 模块结构
 
 ```text
-src/st/build/package/
+src/package/
   model.py                 # 公共 PackageRequest/Artifact/状态
   manifest.py              # 确定性 PackageManifest
   release_gate.py          # 已验证 ReleaseBundle 前置校验

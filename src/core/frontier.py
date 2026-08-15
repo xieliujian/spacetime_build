@@ -15,9 +15,9 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Protocol, runtime_checkable
 
-from st.build.core.artifacts import LogicalArtifact
-from st.build.core.graph import BuildGraph
-from st.build.core.tasks import TaskIdentity
+from core.artifacts import LogicalArtifact
+from core.graph import BuildGraph
+from core.tasks import TaskIdentity
 
 
 @dataclass(frozen=True, slots=True)

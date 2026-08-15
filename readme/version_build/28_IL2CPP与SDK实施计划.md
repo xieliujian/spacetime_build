@@ -14,7 +14,7 @@
 ## 1. 状态、范围与旧系统边界
 
 - 文档状态：**设计与实施计划完成，独立审查通过**。
-- 代码状态：**规划中，`st.build.services` 与 `st.build.sdk` 尚不存在**。
+- 代码状态：**规划中，`services` 与 `sdk` 尚不存在**。
 - 只读参考：`services/client/client_buildil2cpp.py`、`services/server/service_buildil2cpp*.py`、
   `services/server/pvr_cache.py`、`package/il2cpp_encrypt.py`、`sdk/sdk_xml_process.py`、
   `sdk/sdk_project_post_process.py` 和 `sdk/sdk_post_process.py`。
@@ -30,7 +30,7 @@
 ## 2. 模块结构
 
 ```text
-src/st/build/services/il2cpp/
+src/services/il2cpp/
   model.py             # 请求、工具链、架构、结果和状态
   cache_key.py         # 内容寻址输入与工具链身份
   planner.py           # 本地/远端执行计划
@@ -39,7 +39,7 @@ src/st/build/services/il2cpp/
   archive.py           # 安全输入/输出归档
   protection.py        # 可选版本化保护工具计划
   validator.py         # 库、符号、metadata 与架构验证
-src/st/build/sdk/
+src/sdk/
   model.py             # SdkDescriptor、目标平台和声明输入输出
   catalog.py           # TOML descriptor 加载与版本锁定
   planner.py           # hook 排序、冲突和组合
@@ -99,7 +99,7 @@ class Il2CppBuildRequest:
 
 ### Task 1：IL2CPP 模型
 
-**Files:** Create `src/st/build/services/__init__.py`, `services/il2cpp/__init__.py`, `model.py`; Test `tests/services/il2cpp/test_model.py`。
+**Files:** Create `src/services/__init__.py`, `services/il2cpp/__init__.py`, `model.py`; Test `tests/services/il2cpp/test_model.py`。
 
 - [ ] 写失败测试，覆盖平台、架构、BlobRef、Unity/toolchain、local/remote、protection 和非法组合。
 - [ ] 运行 `python -m pytest tests/services/il2cpp/test_model.py -q`，预期模型不存在。
@@ -108,7 +108,7 @@ class Il2CppBuildRequest:
 
 ### Task 2：安全归档
 
-**Files:** Create `src/st/build/services/il2cpp/archive.py`; Test `tests/services/il2cpp/test_archive.py`。
+**Files:** Create `src/services/il2cpp/archive.py`; Test `tests/services/il2cpp/test_archive.py`。
 
 - [ ] 写失败测试，覆盖确定性顺序/时间、路径逃逸、绝对路径、链接、重复大小写路径、压缩炸弹限额和 SHA256。
 - [ ] 运行 `python -m pytest tests/services/il2cpp/test_archive.py -q`，预期 archive codec 不存在。
@@ -117,7 +117,7 @@ class Il2CppBuildRequest:
 
 ### Task 3：IL2CPP 缓存键
 
-**Files:** Create `src/st/build/services/il2cpp/cache_key.py`; Test `tests/services/il2cpp/test_cache_key.py`。
+**Files:** Create `src/services/il2cpp/cache_key.py`; Test `tests/services/il2cpp/test_cache_key.py`。
 
 - [ ] 写失败测试，逐一改变输入、工具链、架构、命令版本、环境和 protection，要求键变化；输入排列不影响键。
 - [ ] 运行 `python -m pytest tests/services/il2cpp/test_cache_key.py -q`，预期 factory 不存在。
@@ -126,7 +126,7 @@ class Il2CppBuildRequest:
 
 ### Task 4：执行计划
 
-**Files:** Create `src/st/build/services/il2cpp/planner.py`; Test `tests/services/il2cpp/test_planner.py`。
+**Files:** Create `src/services/il2cpp/planner.py`; Test `tests/services/il2cpp/test_planner.py`。
 
 - [ ] 写失败测试，覆盖 Unity 版本到固定模板、架构输出、local/remote、缓存命中、缺工具链和未知模板。
 - [ ] 运行 `python -m pytest tests/services/il2cpp/test_planner.py -q`，预期 `Il2CppPlanner` 不存在。
@@ -135,7 +135,7 @@ class Il2CppBuildRequest:
 
 ### Task 5：本地执行器
 
-**Files:** Create `src/st/build/services/il2cpp/local.py`; Test `tests/services/il2cpp/test_local.py`。
+**Files:** Create `src/services/il2cpp/local.py`; Test `tests/services/il2cpp/test_local.py`。
 
 - [ ] 写失败测试，覆盖 workspace、ProcessRunner、超时、非零退出、取消、缺输出和部分输出清理。
 - [ ] 运行 `python -m pytest tests/services/il2cpp/test_local.py -q`，预期 local executor 不存在。
@@ -144,7 +144,7 @@ class Il2CppBuildRequest:
 
 ### Task 6：远端协调器
 
-**Files:** Create `src/st/build/services/il2cpp/remote.py`; Test `tests/services/il2cpp/test_remote.py`。
+**Files:** Create `src/services/il2cpp/remote.py`; Test `tests/services/il2cpp/test_remote.py`。
 
 - [ ] 写失败测试，覆盖对象上传、CI 白名单参数、幂等触发、轮询、超时、取消、陈旧/伪造结果和哈希错误。
 - [ ] 运行 `python -m pytest tests/services/il2cpp/test_remote.py -q`，预期 coordinator 不存在。
@@ -153,7 +153,7 @@ class Il2CppBuildRequest:
 
 ### Task 7：IL2CPP 输出验证
 
-**Files:** Create `src/st/build/services/il2cpp/validator.py`; Test `tests/services/il2cpp/test_validator.py`。
+**Files:** Create `src/services/il2cpp/validator.py`; Test `tests/services/il2cpp/test_validator.py`。
 
 - [ ] 写失败测试，覆盖库架构、必需文件、符号/metadata 对应、归档清单、输入 identity 和损坏结果。
 - [ ] 运行 `python -m pytest tests/services/il2cpp/test_validator.py -q`，预期 validator 不存在。
@@ -162,7 +162,7 @@ class Il2CppBuildRequest:
 
 ### Task 8：可选保护计划
 
-**Files:** Create `src/st/build/services/il2cpp/protection.py`; Test `tests/services/il2cpp/test_protection.py`。
+**Files:** Create `src/services/il2cpp/protection.py`; Test `tests/services/il2cpp/test_protection.py`。
 
 - [ ] 写失败测试，覆盖策略版本、白名单文件、备份、工具报告、字符串/metadata fixture、失败回滚和取消。
 - [ ] 运行 `python -m pytest tests/services/il2cpp/test_protection.py -q`，预期 protection planner 不存在。
@@ -171,7 +171,7 @@ class Il2CppBuildRequest:
 
 ### Task 9：SDK 模型与 catalog
 
-**Files:** Create `src/st/build/sdk/__init__.py`, `model.py`, `catalog.py`; Test `tests/sdk/test_model.py`, `test_catalog.py`。
+**Files:** Create `src/sdk/__init__.py`, `model.py`, `catalog.py`; Test `tests/sdk/test_model.py`, `test_catalog.py`。
 
 - [ ] 写失败测试，覆盖 ID/version/platform/stage、输入输出、冲突键、SecretRef、SHA256 锁和禁止可执行字段。
 - [ ] 运行 `python -m pytest tests/sdk/test_model.py tests/sdk/test_catalog.py -q`，预期 SDK 模型不存在。
@@ -180,7 +180,7 @@ class Il2CppBuildRequest:
 
 ### Task 10：SDK 组合规划
 
-**Files:** Create `src/st/build/sdk/planner.py`; Test `tests/sdk/test_planner.py`。
+**Files:** Create `src/sdk/planner.py`; Test `tests/sdk/test_planner.py`。
 
 - [ ] 写失败测试，覆盖拓扑顺序、版本约束、循环依赖、路径/独占键冲突、删除写入冲突和空集合。
 - [ ] 运行 `python -m pytest tests/sdk/test_planner.py -q`，预期 `SdkHookPlanner` 不存在。
@@ -189,7 +189,7 @@ class Il2CppBuildRequest:
 
 ### Task 11：Android SDK 操作
 
-**Files:** Create `src/st/build/sdk/android.py`; Test `tests/sdk/test_android.py`。
+**Files:** Create `src/sdk/android.py`; Test `tests/sdk/test_android.py`。
 
 - [ ] 写失败测试，覆盖 Manifest 节点、Gradle 白名单字段、aar/jar/so/resource 布局、ABI 和冲突。
 - [ ] 运行 `python -m pytest tests/sdk/test_android.py -q`，预期 Android mapper 不存在。
@@ -198,7 +198,7 @@ class Il2CppBuildRequest:
 
 ### Task 12：iOS SDK 操作
 
-**Files:** Create `src/st/build/sdk/ios.py`; Test `tests/sdk/test_ios.py`。
+**Files:** Create `src/sdk/ios.py`; Test `tests/sdk/test_ios.py`。
 
 - [ ] 写失败测试，覆盖 plist、framework/library、build setting、entitlements、资源和 target 冲突。
 - [ ] 运行 `python -m pytest tests/sdk/test_ios.py -q`，预期 iOS mapper 不存在。
@@ -207,7 +207,7 @@ class Il2CppBuildRequest:
 
 ### Task 13：Windows SDK 操作
 
-**Files:** Create `src/st/build/sdk/windows.py`; Test `tests/sdk/test_windows.py`。
+**Files:** Create `src/sdk/windows.py`; Test `tests/sdk/test_windows.py`。
 
 - [ ] 写失败测试，覆盖 dll/runtime/config/Launcher、签名前后阶段、目标冲突和保留路径。
 - [ ] 运行 `python -m pytest tests/sdk/test_windows.py -q`，预期 Windows mapper 不存在。
@@ -216,7 +216,7 @@ class Il2CppBuildRequest:
 
 ### Task 14：SDK 安全应用
 
-**Files:** Create `src/st/build/sdk/apply.py`; Test `tests/sdk/test_apply.py`。
+**Files:** Create `src/sdk/apply.py`; Test `tests/sdk/test_apply.py`。
 
 - [ ] 写失败测试，覆盖基准树验证、原子应用、计划外变化、重复应用、异常回滚、取消和 SecretRef 最短租约。
 - [ ] 运行 `python -m pytest tests/sdk/test_apply.py -q`，预期 applier 不存在。
@@ -225,7 +225,7 @@ class Il2CppBuildRequest:
 
 ### Task 15：SDK 后验证
 
-**Files:** Create `src/st/build/sdk/validator.py`; Test `tests/sdk/test_validator.py`。
+**Files:** Create `src/sdk/validator.py`; Test `tests/sdk/test_validator.py`。
 
 - [ ] 写失败测试，覆盖 descriptor 锁、声明输出、包体结构、签名失效、资源入口和平台 validator 委托。
 - [ ] 运行 `python -m pytest tests/sdk/test_validator.py -q`，预期 validator 不存在。
@@ -235,7 +235,7 @@ class Il2CppBuildRequest:
 ### Task 16：自动化门禁
 
 - [ ] 运行 `python -m pytest tests/services/il2cpp tests/sdk tests/package tests/quality/test_chinese_documentation.py -q`。
-- [ ] 分别运行 `--cov=st.build.services.il2cpp` 与 `--cov=st.build.sdk`，各自覆盖率不低于 90%。
+- [ ] 分别运行 `--cov=services.il2cpp` 与 `--cov=sdk`，各自覆盖率不低于 90%。
 - [ ] 运行全量 pytest、Ruff、Pyright 和 compileall，预期全部退出码 0。
 
 ### Task 17：真实 IL2CPP 节点验收

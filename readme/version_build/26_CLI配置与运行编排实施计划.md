@@ -5,16 +5,16 @@
 
 **Goal:** 实现唯一的 application 用例编排层和薄 CLI，使资源构建、发布、客户端打包、状态、恢复、取消与回滚具有一致的配置、事务和退出码语义。
 
-**Architecture:** `st.build.application` 只组合现有领域服务与端口，不拼协议文本、不执行 shell；`st.build.cli` 只负责 TOML/环境变量/参数覆盖、命令路由和结果呈现。外部实现仍由计划 18 的 composition root 注入，平台组件仍由计划 23、25、27、28 提供。
+**Architecture:** `application` 只组合现有领域服务与端口，不拼协议文本、不执行 shell；`cli` 只负责 TOML/环境变量/参数覆盖、命令路由和结果呈现。外部实现仍由计划 18 的 composition root 注入，平台组件仍由计划 23、25、27、28 提供。
 
-**Tech Stack:** Python 3.10、`tomllib`、`argparse`、pytest、现有 `st.build.core`/`release` 模型与计划 18 端口。
+**Tech Stack:** Python 3.10、`tomllib`、`argparse`、pytest、现有 `core`/`release` 模型与计划 18 端口。
 
 ---
 
 ## 1. 状态、范围与安全边界
 
 - 文档状态：**实施计划完成，独立审查通过**。
-- 代码状态：**规划中，`st.build.application` 与 `st.build.cli` 尚不存在**。
+- 代码状态：**规划中，`application` 与 `cli` 尚不存在**。
 - 本文是全仓唯一的跨模块运行编排归属；平台模块不得新增自己的顶层 pipeline。
 - 当前 README 不得列出任何可执行构建命令；只有对应自动化与外部验收关闭后才能标记可用。
 - 旧目录 `F:\proj_se\develop\client\tools\build` 只读；不从该目录启动 controller、Jenkins、上传、签名或 SVN 写操作。
@@ -28,7 +28,7 @@ JobName、环境变量和可变目录推断模式的行为不迁移，所有选�
 ## 2. 模块结构与依赖
 
 ```text
-src/st/build/application/
+src/application/
   model.py               # RunId、用例输入、结果与统一状态
   preflight.py           # 配置、revision、基线和工具链前置检查
   build_resources.py     # 资源构建用例
@@ -36,7 +36,7 @@ src/st/build/application/
   package_client.py      # Android/iOS/Windows 客户端出包用例
   operations.py          # 状态、取消、恢复和回滚用例
   records.py             # 执行记录的确定性持久化
-src/st/build/cli/
+src/cli/
   platforms.py           # 文本平台值到唯一 BuildPlatform 的严格转换
   config.py              # TOML、环境变量和默认值
   overrides.py           # 命令行覆盖与来源追踪
@@ -73,8 +73,8 @@ class RunResult:
     artifact_ids: tuple[str, ...]
 ```
 
-`BuildPlatform` 只从计划 20 的 `st.build.core.platforms` 导入；资源变体只从
-`st.build.release.entries.ResourceVariant` 导入。run ID、manifest ID、bundle ID 和 package ID
+`BuildPlatform` 只从计划 20 的 `core.platforms` 导入；资源变体只从
+`release.entries.ResourceVariant` 导入。run ID、manifest ID、bundle ID 和 package ID
 不得互相替代。
 
 配置优先级严格为：
@@ -116,16 +116,16 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 1：共享平台枚举转换
 
-**Files:** Create `src/st/build/cli/platforms.py`; Test `tests/cli/test_platforms.py`, `tests/core/test_platforms.py`。
+**Files:** Create `src/cli/platforms.py`; Test `tests/cli/test_platforms.py`, `tests/core/test_platforms.py`。
 
 - [ ] 写失败测试，固定 `android`、`ios`、`windows` 的严格转换并拒绝别名、大小写漂移和未知值。
 - [ ] 运行 `python -m pytest tests/cli/test_platforms.py -q`，预期 `parse_build_platform` 不存在。
-- [ ] 实现只返回 `st.build.core.platforms.BuildPlatform` 的 converter，不声明新枚举。
+- [ ] 实现只返回 `core.platforms.BuildPlatform` 的 converter，不声明新枚举。
 - [ ] 运行 `python -m pytest tests/cli/test_platforms.py tests/core/test_platforms.py -q`，预期退出码 0；运行中文文档检查。
 
 ### Task 2：application 请求和状态
 
-**Files:** Create `src/st/build/application/__init__.py`, `model.py`; Test `tests/application/test_model.py`。
+**Files:** Create `src/application/__init__.py`, `model.py`; Test `tests/application/test_model.py`。
 
 - [ ] 写失败测试，覆盖 run ID、固定 revision、平台、dry-run、状态转移和终态不可逆。
 - [ ] 运行 `python -m pytest tests/application/test_model.py -q`，预期 `ApplicationRequest` 不存在。
@@ -134,7 +134,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 3：TOML profile 加载
 
-**Files:** Create `src/st/build/cli/__init__.py`, `config.py`; Test `tests/cli/test_config.py`。
+**Files:** Create `src/cli/__init__.py`, `config.py`; Test `tests/cli/test_config.py`。
 
 - [ ] 写失败测试，覆盖默认值、profile 继承、未知键、类型错误、路径逃逸、SecretRef 和 UTF-8 TOML。
 - [ ] 运行 `python -m pytest tests/cli/test_config.py -q`，预期 `BuildConfigLoader` 不存在。
@@ -143,7 +143,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 4：环境变量与 CLI 覆盖
 
-**Files:** Create `src/st/build/cli/overrides.py`; Test `tests/cli/test_overrides.py`。
+**Files:** Create `src/cli/overrides.py`; Test `tests/cli/test_overrides.py`。
 
 - [ ] 写失败测试，覆盖四级优先级、字段来源、空环境变量、重复参数、布尔/整数解析和 secret 脱敏。
 - [ ] 运行 `python -m pytest tests/cli/test_overrides.py -q`，预期 `ConfigOverrideResolver` 不存在。
@@ -152,7 +152,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 5：preflight 与 dry-run
 
-**Files:** Create `src/st/build/application/preflight.py`; Test `tests/application/test_preflight.py`。
+**Files:** Create `src/application/preflight.py`; Test `tests/application/test_preflight.py`。
 
 - [ ] 写失败测试，覆盖 revision 固定、baseline/release/package ID、工具链版本、平台能力和 dry-run 零写调用。
 - [ ] 运行 `python -m pytest tests/application/test_preflight.py -q`，预期 `PreflightService` 不存在。
@@ -161,7 +161,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 6：执行记录存储
 
-**Files:** Create `src/st/build/application/records.py`; Test `tests/application/test_records.py`。
+**Files:** Create `src/application/records.py`; Test `tests/application/test_records.py`。
 
 - [ ] 写失败测试，覆盖规范 JSON、未知 schema、陈旧 ID、状态倒退、CAS 冲突、重复写和并发更新。
 - [ ] 运行 `python -m pytest tests/application/test_records.py -q`，预期 `RunRecordRepository` 不存在。
@@ -170,7 +170,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 7：资源构建用例
 
-**Files:** Create `src/st/build/application/build_resources.py`; Test `tests/application/test_build_resources.py`。
+**Files:** Create `src/application/build_resources.py`; Test `tests/application/test_build_resources.py`。
 
 - [ ] 写失败测试，覆盖任务 plan、DAG、Executor、Frontier、BuildManifest factory、取消和部分失败。
 - [ ] 运行 `python -m pytest tests/application/test_build_resources.py -q`，预期 `BuildResourcesUseCase` 不存在。
@@ -179,7 +179,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 8：发布用例
 
-**Files:** Create `src/st/build/application/publish_release.py`; Test `tests/application/test_publish_release.py`。
+**Files:** Create `src/application/publish_release.py`; Test `tests/application/test_publish_release.py`。
 
 - [ ] 写失败测试，覆盖 merger 到 activator 的顺序、协议校验、上传失败、远端哈希失败、CAS 冲突和取消。
 - [ ] 运行 `python -m pytest tests/application/test_publish_release.py -q`，预期 `PublishReleaseUseCase` 不存在。
@@ -188,7 +188,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 9：客户端打包用例
 
-**Files:** Create `src/st/build/application/package_client.py`; Test `tests/application/test_package_client.py`。
+**Files:** Create `src/application/package_client.py`; Test `tests/application/test_package_client.py`。
 
 - [ ] 写失败测试，覆盖 Release gate、平台 dispatch、PackageManifest、可选上传、取消和平台能力缺失。
 - [ ] 运行 `python -m pytest tests/application/test_package_client.py -q`，预期 `PackageClientUseCase` 不存在。
@@ -197,7 +197,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 10：状态、取消、恢复与回滚用例
 
-**Files:** Create `src/st/build/application/operations.py`; Test `tests/application/test_operations.py`。
+**Files:** Create `src/application/operations.py`; Test `tests/application/test_operations.py`。
 
 - [ ] 写失败测试，覆盖未知 run、终态取消、重复取消、恢复身份漂移、发布恢复和 Bundle 级回滚冲突。
 - [ ] 运行 `python -m pytest tests/application/test_operations.py -q`，预期 operations 用例不存在。
@@ -206,7 +206,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 11：CLI 命令树和退出码
 
-**Files:** Create `src/st/build/cli/parser.py`, `exit_codes.py`; Test `tests/cli/test_parser.py`, `test_exit_codes.py`。
+**Files:** Create `src/cli/parser.py`, `exit_codes.py`; Test `tests/cli/test_parser.py`, `test_exit_codes.py`。
 
 - [ ] 写失败测试，固定命令/参数、互斥项、帮助输出和上述 0/2..10 退出码映射。
 - [ ] 运行 `python -m pytest tests/cli/test_parser.py tests/cli/test_exit_codes.py -q`，预期 parser/mapper 不存在。
@@ -215,7 +215,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 12：输出、命令处理器和 bootstrap
 
-**Files:** Create `src/st/build/cli/output.py`, `commands.py`, `bootstrap.py`; Test `tests/cli/test_commands.py`, `test_output.py`, `test_bootstrap.py`。
+**Files:** Create `src/cli/output.py`, `commands.py`, `bootstrap.py`; Test `tests/cli/test_commands.py`, `test_output.py`, `test_bootstrap.py`。
 
 - [ ] 写失败测试，覆盖 JSON/人类输出、secret/路径脱敏、命令到唯一 use case、缺 adapter 和构造零副作用。
 - [ ] 运行 `python -m pytest tests/cli/test_commands.py tests/cli/test_output.py tests/cli/test_bootstrap.py -q`，预期目标模块不存在。
@@ -224,7 +224,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 
 ### Task 13：可执行入口
 
-**Files:** Create `src/st/build/cli/main.py`; Modify `pyproject.toml`; Test `tests/cli/test_main.py`, `tests/test_package_import.py`。
+**Files:** Create `src/cli/main.py`; Modify `pyproject.toml`; Test `tests/cli/test_main.py`, `tests/test_package_import.py`。
 
 - [ ] 写失败测试，要求导入无副作用、`main(argv)` 返回整数、Ctrl+C 映射取消且 console script 指向唯一入口。
 - [ ] 运行 `python -m pytest tests/cli/test_main.py tests/test_package_import.py -q`，预期入口不存在。
@@ -245,7 +245,7 @@ log locator，不包含 traceback 或 secret；`--debug` 只增加脱敏诊断�
 **Files:** Create `tests/integration/application/test_controlled_workflow_probe.py`, `readme/evidence/application/CLI编排验收.md`。
 
 - [ ] 运行 `python -m pytest tests/application tests/cli tests/integration/application -q` 和
-  `python -m pytest --cov=st.build.application --cov=st.build.cli --cov-report=term-missing --cov-fail-under=90 tests/application tests/cli`，预期退出码 0。
+  `python -m pytest --cov=application --cov=cli --cov-report=term-missing --cov-fail-under=90 tests/application tests/cli`，预期退出码 0。
 - [ ] 运行全量 pytest、Ruff、Pyright、compileall 和中文文档检查，预期全部退出码 0。
 - [ ] 在已配置隔离外部环境运行
   `python -m pytest tests/integration/application/test_controlled_workflow_probe.py -q --run-external`，记录 run ID、revision、manifest/bundle/package ID、CAS generation 和退出码。

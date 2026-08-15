@@ -1,6 +1,6 @@
 ---
 name: st-build-development
-description: 开发、重构或审查 st.build Python 构建系统时使用。覆盖领域模型、任务 DAG、旧客户端协议、资源构建、发布、测试和中文文档规范。
+description: 开发、重构或审查直接顶级包形式的 Python 构建系统时使用。覆盖领域模型、任务 DAG、旧客户端协议、资源构建、发布、测试和中文文档规范。
 ---
 
 # ST Build Development
@@ -29,12 +29,12 @@ description: 开发、重构或审查 st.build Python 构建系统时使用。�
 
 ## 架构约束
 
-- 新代码使用 `src/st/build/` 和 `st.build` 命名空间；
+- 新代码直接使用 `src/<domain>/` 顶级包，当前领域包为 `core` 和 `release`；
 - 领域层不依赖 SVN、Unity、Jenkins 或 CDN；
 - 外部系统通过 Protocol 和适配器接入；
 - BuildManifest 不包含运行状态和发布信息；
 - ReleaseBundle 是主/低清激活、回滚和审计的最小单位；
-- 旧协议只能由 `st.build.compatibility` 生成；
+- 旧协议只能由 `compatibility` 顶级包生成；
 - Manifest、缓存键和协议输出必须确定性生成。
 
 ## 完成条件

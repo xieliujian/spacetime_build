@@ -11,9 +11,9 @@ import dataclasses
 
 import pytest
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.release.activation import (
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from release.activation import (
     RELEASE_ACTIVATION_SCHEMA_VERSION,
     ReleaseActivationRecord,
     ReleaseActivationStatus,
@@ -21,22 +21,22 @@ from st.build.release.activation import (
     advance_activation,
     verify_release_bundle,
 )
-from st.build.release.bundle_codec import ReleaseBundleFactory
-from st.build.release.bundles import (
+from release.bundle_codec import ReleaseBundleFactory
+from release.bundles import (
     RELEASE_BUNDLE_SCHEMA_VERSION,
     ReleaseBundlePayload,
 )
-from st.build.release.entries import (
+from release.entries import (
     ReleaseEntry,
     ReleaseObjectOrigin,
     ResourceVariant,
 )
-from st.build.release.manifest_codec import ReleaseManifestFactory
-from st.build.release.manifests import (
+from release.manifest_codec import ReleaseManifestFactory
+from release.manifests import (
     RELEASE_MANIFEST_SCHEMA_VERSION,
     ReleaseManifestPayload,
 )
-from st.build.release.snapshots import (
+from release.snapshots import (
     ReleaseArtifactClass,
     ReleaseMembership,
     ReleaseSnapshot,
@@ -159,7 +159,7 @@ def test_activation_record_tracks_bundle_state_and_rejects_unknown_schema() -> N
     - 创建多条不同状态记录不改变所引用的 ``bundle_id``；
     - 记录不可变。
 
-    当 ``st.build.release.activation`` 尚未创建时，测试收集阶段应以
+    当 ``release.activation`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入外不产生外部副作用。
     """
     assert RELEASE_ACTIVATION_SCHEMA_VERSION == 1

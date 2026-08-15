@@ -21,7 +21,7 @@
 
 ### Task 1：iOS 模型
 
-**Files:** Create `src/st/build/package/platforms/ios/__init__.py`, `model.py`; Test `tests/package/ios/test_model.py`。
+**Files:** Create `src/package/platforms/ios/__init__.py`, `model.py`; Test `tests/package/ios/test_model.py`。
 
 - [ ] 写失败测试，覆盖 configuration、export method、target 集合、bundle ID、team，以及 profile/certificate/private-key SecretRef 完整映射和 project-only。
 - [ ] 运行 `python -m pytest tests/package/ios/test_model.py -q`，预期 iOS 模型不存在。
@@ -31,7 +31,7 @@
 
 ### Task 2：plist 变换
 
-**Files:** Create `src/st/build/package/platforms/ios/plist.py`; Test `tests/package/ios/test_plist.py`。
+**Files:** Create `src/package/platforms/ios/plist.py`; Test `tests/package/ios/test_plist.py`。
 
 - [ ] 写失败测试，覆盖 bundle/version、URL schemes、重复键、非法类型、删除废弃键和确定性输出。
 - [ ] 运行 `python -m pytest tests/package/ios/test_plist.py -q`，预期 `PlistTransformer` 不存在。
@@ -41,7 +41,7 @@
 
 ### Task 3：provisioning profile 元数据
 
-**Files:** Create `src/st/build/package/platforms/ios/provisioning.py`; Test `tests/package/ios/test_provisioning.py`。
+**Files:** Create `src/package/platforms/ios/provisioning.py`; Test `tests/package/ios/test_provisioning.py`。
 
 - [ ] 写失败测试，覆盖 SecretRef、UUID、team、application identifier、entitlements、过期时间和脱敏。
 - [ ] 运行 `python -m pytest tests/package/ios/test_provisioning.py -q`，预期 `ProvisioningProfileReader` 不存在。
@@ -51,7 +51,7 @@
 
 ### Task 4：Xcode 工程变换计划
 
-**Files:** Create `src/st/build/package/platforms/ios/xcode_project.py`; Test `tests/package/ios/test_xcode_project.py`。
+**Files:** Create `src/package/platforms/ios/xcode_project.py`; Test `tests/package/ios/test_xcode_project.py`。
 
 - [ ] 写失败测试，覆盖 target、build setting、framework/library、entitlements、幂等和冲突。
 - [ ] 运行 `python -m pytest tests/package/ios/test_xcode_project.py -q`，预期 `XcodeProjectPlan` 不存在。
@@ -61,7 +61,7 @@
 
 ### Task 5：应用 Xcode 工程计划
 
-**Files:** Create `src/st/build/package/platforms/ios/xcode_apply.py`, `tools/xcode/apply_project.rb`; Test `tests/package/ios/test_xcode_apply.py`。
+**Files:** Create `src/package/platforms/ios/xcode_apply.py`, `tools/xcode/apply_project.rb`; Test `tests/package/ios/test_xcode_apply.py`。
 
 - [ ] 写失败测试，覆盖 workspace 限制、专用 editor 请求、重复应用、冲突、取消和失败回滚。
 - [ ] 运行 `python -m pytest tests/package/ios/test_xcode_apply.py -q`，预期 `XcodeProjectPlanApplier` 不存在。
@@ -71,7 +71,7 @@
 
 ### Task 6：临时 keychain 租约
 
-**Files:** Create `src/st/build/package/platforms/ios/keychain.py`; Test `tests/package/ios/test_keychain.py`。
+**Files:** Create `src/package/platforms/ios/keychain.py`; Test `tests/package/ios/test_keychain.py`。
 
 - [ ] 写失败测试，覆盖从每个 target 的 certificate/private-key SecretRef 导入材料、独占临时 keychain、受限权限、异常/取消清理和日志脱敏。
 - [ ] 运行 `python -m pytest tests/package/ios/test_keychain.py -q`，预期 `IosKeychainLease` 不存在。
@@ -81,7 +81,7 @@
 
 ### Task 7：签名计划
 
-**Files:** Create `src/st/build/package/platforms/ios/signing.py`; Test `tests/package/ios/test_signing.py`。
+**Files:** Create `src/package/platforms/ios/signing.py`; Test `tests/package/ios/test_signing.py`。
 
 - [ ] 写失败测试，覆盖 profile/team/bundle/identity 一致、目标间隔离、SecretRef 和参数脱敏。
 - [ ] 运行 `python -m pytest tests/package/ios/test_signing.py -q`，预期 `IosSigningPlanner` 不存在。
@@ -93,7 +93,7 @@
 
 ### Task 8：Unity iOS 工程导出
 
-**Files:** Modify `src/st/build/package/unity_export.py`; Test `tests/package/ios/test_unity_export.py`。
+**Files:** Modify `src/package/unity_export.py`; Test `tests/package/ios/test_unity_export.py`。
 
 - [ ] 写失败测试，覆盖 iOS BuildPlatform、Xcode 输出根、ReleaseBundle 入口和 project-only。
 - [ ] 运行 `python -m pytest tests/package/ios/test_unity_export.py -q`，预期 iOS operation 不受支持。
@@ -103,7 +103,7 @@
 
 ### Task 9：archive
 
-**Files:** Create `src/st/build/package/platforms/ios/archive.py`; Test `tests/package/ios/test_archive.py`。
+**Files:** Create `src/package/platforms/ios/archive.py`; Test `tests/package/ios/test_archive.py`。
 
 - [ ] 写失败测试，覆盖 workspace/scheme/configuration、result bundle、非零退出、超时和取消。
 - [ ] 运行 `python -m pytest tests/package/ios/test_archive.py -q`，预期 `IosArchiveBuilder` 不存在。
@@ -113,7 +113,7 @@
 
 ### Task 10：IPA export
 
-**Files:** Create `src/st/build/package/platforms/ios/export.py`; Test `tests/package/ios/test_export.py`。
+**Files:** Create `src/package/platforms/ios/export.py`; Test `tests/package/ios/test_export.py`。
 
 - [ ] 写失败测试，覆盖每个 IosExportTarget、ExportOptions、输出发现、重复 IPA 和部分失败。
 - [ ] 运行 `python -m pytest tests/package/ios/test_export.py -q`，预期 `IosIpaExporter` 不存在。
@@ -123,7 +123,7 @@
 
 ### Task 11：dSYM
 
-**Files:** Create `src/st/build/package/platforms/ios/symbols.py`; Test `tests/package/ios/test_symbols.py`。
+**Files:** Create `src/package/platforms/ios/symbols.py`; Test `tests/package/ios/test_symbols.py`。
 
 - [ ] 写失败测试，覆盖 archive dSYMs、UUID、缺符号、重复符号和确定性 archive。
 - [ ] 运行 `python -m pytest tests/package/ios/test_symbols.py -q`，预期 `IosSymbolCollector` 不存在。
@@ -133,7 +133,7 @@
 
 ### Task 12：IPA 验证
 
-**Files:** Create `src/st/build/package/platforms/ios/validator.py`; Test `tests/package/ios/test_validator.py`。
+**Files:** Create `src/package/platforms/ios/validator.py`; Test `tests/package/ios/test_validator.py`。
 
 - [ ] 写失败测试，覆盖 zip 安全、Payload 结构、bundle/version、codesign、profile、架构、资源入口和 dSYM UUID。
 - [ ] 运行 `python -m pytest tests/package/ios/test_validator.py -q`，预期 `IosPackageValidator` 不存在。
@@ -146,7 +146,7 @@
 ### Task 13：自动化门禁
 
 - [ ] 运行 `python -m pytest tests/package/ios tests/package tests/quality/test_chinese_documentation.py -q`。
-- [ ] 运行 `python -m pytest --cov=st.build.package.platforms.ios --cov-report=term-missing --cov-fail-under=90 tests/package/ios`。
+- [ ] 运行 `python -m pytest --cov=package.platforms.ios --cov-report=term-missing --cov-fail-under=90 tests/package/ios`。
 - [ ] 运行 `python -m pytest -q`、`python -m ruff format --check .`、`python -m ruff check .`、`python -m pyright` 和 `python -m compileall -q src tests`，全部退出码 0。
 
 ### Task 14：真实 iOS 平台验收

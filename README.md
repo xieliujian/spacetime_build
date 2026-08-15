@@ -1,7 +1,7 @@
 # spacetime_build
 
 本项目用于在不修改旧构建工具的前提下，重新实现 SE 项目的 Unity 构建系统。工程采用
-Python 3.10+ 和 `src` 布局，顶级导入命名空间为 `st.build`。
+Python 3.10+ 和 `src` 布局，各功能域直接作为顶级包；当前已实现 `core` 和 `release`。
 
 当前已完成第一阶段工程骨架和第二阶段纯 Python 领域内核，包括不可变产物模型、
 确定性 BuildManifest、任务 DAG、恢复 Frontier、同步参考 Executor，以及协议无关的
@@ -17,8 +17,8 @@ Redirect/分包协议输出、SVN/Unity/Jenkins/CDN 适配器、资源构建任�
 Android、iOS、Windows、IL2CPP/SDK、分支、美术辅助和端到端迁移。
 这些文档是后续 TDD 实施依据，不表示对应代码或平台能力已经可用。
 
-当前验证基线为 Python 3.10.11：完整测试 51 项通过且无跳过，整体、`st.build.core`
-和 `st.build.release` 覆盖率均为 93%，Ruff、Pyright 和 compileall 检查通过。
+当前验证基线为 Python 3.10.11：完整测试 51 项通过且无跳过，整体、`core`
+和 `release` 覆盖率均为 93%，Ruff、Pyright 和 compileall 检查通过。
 
 ## 版本构建资料
 

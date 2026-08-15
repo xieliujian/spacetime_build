@@ -14,7 +14,7 @@
 ## 3. 模块结构
 
 ```text
-src/st/build/package/platforms/ios/
+src/package/platforms/ios/
   model.py            # configuration/export target
   plist.py            # 结构化 plist 变换
   provisioning.py     # profile 元数据与 SecretRef

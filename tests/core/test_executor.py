@@ -14,21 +14,21 @@ from typing import Callable, get_type_hints
 
 import pytest
 
-from st.build.core.artifacts import (
+from core.artifacts import (
     ArtifactKind,
     ArtifactMetadata,
     BlobRef,
     LogicalArtifact,
 )
-from st.build.core.errors import ArtifactValidationError, ToolExecutionError
-from st.build.core.executor import ExecutionResult, TaskExecutor
-from st.build.core.frontier import (
+from core.errors import ArtifactValidationError, ToolExecutionError
+from core.executor import ExecutionResult, TaskExecutor
+from core.frontier import (
     CompletedTaskRecord,
     ExecutionFrontier,
     VerifiedFrontier,
 )
-from st.build.core.planner import BuildPlanner
-from st.build.core.tasks import (
+from core.planner import BuildPlanner
+from core.tasks import (
     ArtifactCollection,
     BuildContext,
     TaskPlan,
@@ -220,7 +220,7 @@ def test_executor_runs_layers_in_stable_order_and_collects_artifacts() -> None:
     - 每个节点只收到显式上游依赖任务的产物，而非全局 registry；
     - 结果包含全部 ``LogicalArtifact``。
 
-    当 ``st.build.core.executor`` 尚未创建时，测试收集阶段应以
+    当 ``core.executor`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入与内存构造外不产生外部副作用。
     """
     # 层 0：leaf.b、leaf.a（UTF-8 下 a 在 b 前）；层 1：mid；层 2：top

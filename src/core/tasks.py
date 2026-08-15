@@ -16,8 +16,8 @@ from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-from st.build.core.artifacts import LogicalArtifact
-from st.build.core.manifest_codec import canonical_json_bytes
+from core.artifacts import LogicalArtifact
+from core.manifest_codec import canonical_json_bytes
 
 
 @dataclass(frozen=True, slots=True)

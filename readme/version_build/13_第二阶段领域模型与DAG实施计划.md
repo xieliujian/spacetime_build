@@ -4,7 +4,7 @@
 
 **Goal:** 在 Python 3.10+ 上以严格 RED→GREEN 实现不可变领域模型、确定性 BuildManifest、任务 DAG、可校验恢复 Frontier 和独立 Release 聚合，为下一阶段兼容 DTO 提供唯一上游模型。
 
-**Architecture:** `st.build.core` 按异常、产物、构建记录、manifest 编解码、任务协议、图、规划、恢复和执行拆分；`st.build.release` 按条目、协议无关快照、manifest、bundle、激活记录拆分。领域层保持纯 Python，不导入 SVN、Unity、Jenkins、CDN 或 `compatibility`；文件列表 DTO 只能从 `ReleaseEntry` 转换，AB DTO 只能从已验证的 `ReleaseSnapshot` 转换。
+**Architecture:** `core` 按异常、产物、构建记录、manifest 编解码、任务协议、图、规划、恢复和执行拆分；`release` 按条目、协议无关快照、manifest、bundle、激活记录拆分。领域层保持纯 Python，不导入 SVN、Unity、Jenkins、CDN 或 `compatibility`；文件列表 DTO 只能从 `ReleaseEntry` 转换，AB DTO 只能从已验证的 `ReleaseSnapshot` 转换。
 
 **Tech Stack:** Python 3.10+、不可变 dataclasses、enum、typing.Protocol、pathlib、hashlib、json、pytest、pytest-cov、Ruff、Pyright。
 
@@ -18,7 +18,7 @@
 
 - Python 3.10.11；
 - 完整回归 `51 passed`，无 skip；
-- 整体覆盖率 93%，`st.build.core` 93%，`st.build.release` 93%；
+- 整体覆盖率 93%，`core` 93%，`release` 93%；
 - Ruff format、Ruff check、Pyright 和 compileall 全部通过；
 - 中文 docstring AST 自动门禁通过，详细度人工审查尚未留下完整记录；
 - 本阶段只完成纯 Python 领域内核，不代表兼容协议、外部适配器、资源任务或 CLI 可用。
@@ -39,27 +39,27 @@
 
 **Core domain:**
 
-- Create: `src/st/build/core/__init__.py` — 核心领域公共导出，不包含实现逻辑。
-- Create: `src/st/build/core/errors.py` — 完整业务异常体系。
-- Create: `src/st/build/core/artifacts.py` — `ArtifactKind`、`ArtifactMetadata`、`BlobRef`、`LogicalArtifact`。
-- Create: `src/st/build/core/build_records.py` — `BuildManifestPayload`、不可变 `BuildManifest`、`BuildExecutionRecord` 和构建状态。
-- Create: `src/st/build/core/manifest_codec.py` — payload 规范化、`BuildManifestFactory`、ID、读写和完整性校验。
-- Create: `src/st/build/core/tasks.py` — 任务 Protocol、规格、身份、计划、结果和执行上下文。
-- Create: `src/st/build/core/graph.py` — 已验证的不可变 `BuildGraph`。
-- Create: `src/st/build/core/planner.py` — `BuildPlanner` 的图构建和确定性分层。
-- Create: `src/st/build/core/frontier.py` — 完成节点证据和恢复资格校验。
-- Create: `src/st/build/core/executor.py` — 确定性同步 `TaskExecutor`。
+- Create: `src/core/__init__.py` — 核心领域公共导出，不包含实现逻辑。
+- Create: `src/core/errors.py` — 完整业务异常体系。
+- Create: `src/core/artifacts.py` — `ArtifactKind`、`ArtifactMetadata`、`BlobRef`、`LogicalArtifact`。
+- Create: `src/core/build_records.py` — `BuildManifestPayload`、不可变 `BuildManifest`、`BuildExecutionRecord` 和构建状态。
+- Create: `src/core/manifest_codec.py` — payload 规范化、`BuildManifestFactory`、ID、读写和完整性校验。
+- Create: `src/core/tasks.py` — 任务 Protocol、规格、身份、计划、结果和执行上下文。
+- Create: `src/core/graph.py` — 已验证的不可变 `BuildGraph`。
+- Create: `src/core/planner.py` — `BuildPlanner` 的图构建和确定性分层。
+- Create: `src/core/frontier.py` — 完成节点证据和恢复资格校验。
+- Create: `src/core/executor.py` — 确定性同步 `TaskExecutor`。
 
 **Release domain:**
 
-- Create: `src/st/build/release/__init__.py` — Release 领域公共导出。
-- Create: `src/st/build/release/entries.py` — `ResourceVariant`、`ReleaseEntry` 和对象来源。
-- Create: `src/st/build/release/snapshots.py` — 协议无关 `ReleaseSnapshotEntry`、`RedirectSlice`、`ReleaseSnapshot`。
-- Create: `src/st/build/release/manifests.py` — `ReleaseManifestPayload` 和不可变 `ReleaseManifest`；从 `entries.py` 导入 `ResourceVariant`。
-- Create: `src/st/build/release/manifest_codec.py` — `ReleaseManifestFactory`、规范编解码和严格读取。
-- Create: `src/st/build/release/bundles.py` — `ReleaseBundlePayload` 和不可变 `ReleaseBundle`；从 `entries.py` 导入 `ResourceVariant`。
-- Create: `src/st/build/release/bundle_codec.py` — `ReleaseBundleFactory`、规范编解码和严格读取。
-- Create: `src/st/build/release/activation.py` — `ReleaseActivationRecord` 和激活状态。
+- Create: `src/release/__init__.py` — Release 领域公共导出。
+- Create: `src/release/entries.py` — `ResourceVariant`、`ReleaseEntry` 和对象来源。
+- Create: `src/release/snapshots.py` — 协议无关 `ReleaseSnapshotEntry`、`RedirectSlice`、`ReleaseSnapshot`。
+- Create: `src/release/manifests.py` — `ReleaseManifestPayload` 和不可变 `ReleaseManifest`；从 `entries.py` 导入 `ResourceVariant`。
+- Create: `src/release/manifest_codec.py` — `ReleaseManifestFactory`、规范编解码和严格读取。
+- Create: `src/release/bundles.py` — `ReleaseBundlePayload` 和不可变 `ReleaseBundle`；从 `entries.py` 导入 `ResourceVariant`。
+- Create: `src/release/bundle_codec.py` — `ReleaseBundleFactory`、规范编解码和严格读取。
+- Create: `src/release/activation.py` — `ReleaseActivationRecord` 和激活状态。
 
 **Tests:**
 
@@ -132,8 +132,8 @@
 
 **Files:**
 
-- Create: `src/st/build/core/__init__.py`
-- Create: `src/st/build/core/errors.py`
+- Create: `src/core/__init__.py`
+- Create: `src/core/errors.py`
 - Create: `tests/core/test_errors.py`
 
 - [x] **Step 1：RED→GREEN 完成异常继承契约**
@@ -143,7 +143,7 @@
 - pytest：`tests/core/test_errors.py::test_error_hierarchy_matches_public_contract`
 - 目标 API：`BuildError`、`ConfigurationError`、`PlanningError`、`SourceError`、`ToolExecutionError`、`ArtifactValidationError`、`PublishError`、`CompatibilityError`
 - 断言：七个具体异常都直接或间接继承 `BuildError`，异常消息和 `__cause__` 可由标准异常机制保留。
-- 确定 RED：生产包尚无 `st.build.core`，测试收集时以 `ModuleNotFoundError: No module named 'st.build.core'` 失败。
+- 确定 RED：生产包尚无 `core`，测试收集时以 `ModuleNotFoundError: No module named 'core'` 失败。
 - 最小 GREEN：只定义设计文档中的完整继承树和中文类 docstring，不添加重试、日志或外部系统逻辑。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_errors.py -q`
 
@@ -151,7 +151,7 @@
 
 **Files:**
 
-- Create: `src/st/build/core/artifacts.py`
+- Create: `src/core/artifacts.py`
 - Create: `tests/core/test_artifacts.py`
 
 - [x] **Step 1：RED→GREEN 实现类型化 metadata**
@@ -161,7 +161,7 @@
 - pytest：`tests/core/test_artifacts.py::test_artifact_metadata_is_typed_immutable_and_canonicalizable`
 - 目标 API：`ArtifactMetadata(source_task, source_revision, toolchain_digest, attributes)`
 - 断言：对象不可变；`attributes` 只接受排序后可稳定编码的 `tuple[tuple[str, str], ...]`，拒绝任意 `Mapping[str, object]`、重复 key 和非字符串值。
-- 确定 RED：`st.build.core.artifacts` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`core.artifacts` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：实现 `frozen=True, slots=True` dataclass 和构造后校验；不实现 manifest JSON。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_artifacts.py -q`
 
@@ -180,7 +180,7 @@
 
 **Files:**
 
-- Modify: `src/st/build/core/artifacts.py`
+- Modify: `src/core/artifacts.py`
 - Modify: `tests/core/test_artifacts.py`
 
 - [x] **Step 1：在同一次首次 RED 中实现逻辑路径和集合语义**
@@ -198,7 +198,7 @@
 
 **Files:**
 
-- Create: `src/st/build/core/build_records.py`
+- Create: `src/core/build_records.py`
 - Create: `tests/core/test_build_records.py`
 
 - [x] **Step 1：RED→GREEN 定义独立可复现 payload**
@@ -208,7 +208,7 @@
 - pytest：`tests/core/test_build_records.py::test_build_manifest_payload_contains_only_reproducible_content`
 - 目标 API：`BuildManifestPayload(schema_version, request_digest, revision, toolchain_digest, baseline_id, artifacts, task_identities)`
 - 断言：payload 可表达固定请求、revision、工具链、可选基线、产物和任务身份；类型签名中不存在 `manifest_id`、`build_id`、状态、时间、耗时或日志；对象不可变。
-- 确定 RED：`st.build.core.build_records` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`core.build_records` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：只实现不可变 `BuildManifestPayload` 和字段校验，不定义 `BuildManifest`，不计算 ID。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_build_records.py -q`
 
@@ -227,8 +227,8 @@
 
 **Files:**
 
-- Modify: `src/st/build/core/build_records.py`
-- Create: `src/st/build/core/manifest_codec.py`
+- Modify: `src/core/build_records.py`
+- Create: `src/core/manifest_codec.py`
 - Create: `tests/core/test_manifest_codec.py`
 
 - [x] **Step 1：RED→GREEN 定义规范 payload**
@@ -238,7 +238,7 @@
 - pytest：`tests/core/test_manifest_codec.py::test_payload_codec_normalizes_only_unordered_collections`
 - 目标 API：`build_manifest_payload_dict(payload) -> dict[str, object]`、`canonical_json_bytes(value) -> bytes`
 - 断言：交换 artifacts、metadata attributes、subpackage IDs 等无序集合的输入顺序不改变字节；依赖 `("b", "a", "b")` 在 JSON 中仍为同序且保留重复；UTF-8、无 BOM、`sort_keys=True`、紧凑分隔符。
-- 确定 RED：`st.build.core.manifest_codec` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`core.manifest_codec` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：只在领域语义声明为无序的边界按 UTF-8 字节键排序；禁止递归地把所有 list/tuple 排序或去重。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_manifest_codec.py -q`
 
@@ -268,7 +268,7 @@
 
 **Files:**
 
-- Create: `src/st/build/core/tasks.py`
+- Create: `src/core/tasks.py`
 - Create: `tests/core/test_tasks.py`
 
 - [x] **Step 1：在同一次首次 RED 中定义唯一任务规划契约**
@@ -278,7 +278,7 @@
 - pytest：`tests/core/test_tasks.py::test_task_spec_plan_and_build_task_share_single_planning_contract`
 - 目标 API：`TaskSpec`、`TaskPlan(spec, resolved_input_digest, config_digest)`、`BuildTask` Protocol、`BuildContext`、`ArtifactCollection`、`TaskResult`
 - 断言：`TaskSpec` 保存 name、ordered dependencies、无序 outputs、实现版本和执行属性；`BuildTask.plan(context)` 返回引用同一 spec 的完整不可变 `TaskPlan`，`execute(context, inputs)` 返回 tuple outputs；协议没有 SVN、Unity、Jenkins 或上传方法。
-- 确定 RED：`st.build.core.tasks` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`core.tasks` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：实现 `TaskSpec`、完整 `TaskPlan`、`@runtime_checkable BuildTask` 和输入/输出模型；`TaskResult.outputs` 使用 tuple 以便检测重复路径。本步不定义 `TaskIdentity`。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_tasks.py -q`
 
@@ -297,7 +297,7 @@
 
 **Files:**
 
-- Create: `src/st/build/core/graph.py`
+- Create: `src/core/graph.py`
 - Create: `tests/core/test_graph.py`
 
 - [x] **Step 1：RED→GREEN 实现不可变图查询**
@@ -307,7 +307,7 @@
 - pytest：`tests/core/test_graph.py::test_build_graph_exposes_dependencies_dependents_and_roots`
 - 目标 API：`BuildGraph.from_plans(plans)`、`plan_of(name)`、`dependencies_of(name)`、`dependents_of(name)`、`roots`
 - 断言：图节点保存完整 TaskPlan，查询结果正确且不可变；图内计划不随输入容器后续修改而变化。
-- 确定 RED：`st.build.core.graph` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`core.graph` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：复制并冻结规格和边集合，只实现合法输入的查询；本步明确不做重复名、缺失依赖和自边校验。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_graph.py -q`
 
@@ -326,7 +326,7 @@
 
 **Files:**
 
-- Create: `src/st/build/core/planner.py`
+- Create: `src/core/planner.py`
 - Create: `tests/core/test_planner.py`
 
 - [x] **Step 1：RED→GREEN 检测循环**
@@ -336,7 +336,7 @@
 - pytest：`tests/core/test_planner.py::test_planner_rejects_cycle_with_stable_cycle_path`
 - 目标 API：`BuildPlanner.plan(plans: tuple[TaskPlan, ...], context) -> PlannedBuild`
 - 断言：planner 只接收已完成 TaskPlan；循环抛 `PlanningError`，循环路径按稳定任务键报告，输入排列不改变消息。
-- 确定 RED：`st.build.core.planner` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`core.planner` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：从 `BuildGraph.from_plans` 实现循环检测和稳定路径报告；本步不建立输出 owner 索引，也不提供 `PlannedBuild.layers`。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_graph.py tests/core/test_planner.py -q`
 
@@ -366,7 +366,7 @@
 
 **Files:**
 
-- Create: `src/st/build/core/frontier.py`
+- Create: `src/core/frontier.py`
 - Create: `tests/core/test_frontier.py`
 
 - [x] **Step 1：RED→GREEN 定义完成证据**
@@ -376,7 +376,7 @@
 - pytest：`tests/core/test_frontier.py::test_completed_task_record_captures_all_resume_identity_fields`
 - 目标 API：`ResumeContext`、`CompletedTaskRecord(task_name, task_identity, outputs, request_digest, revision, toolchain_digest, baseline_id, schema_version, upstream_identities)`
 - 断言：`outputs` 是完整不可变 `tuple[LogicalArtifact, ...]`，保留逻辑路径、kind、Blob、依赖、分包和 metadata；记录同时包含 task identity、request、固定 revision、toolchain、baseline、schema 和 upstream identities，禁止退化为 BlobRef 集合。
-- 确定 RED：`st.build.core.frontier` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`core.frontier` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：只实现不可变记录；不得只保存“最后任务名”或布尔 completed，本步不实现验证 API。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_frontier.py -q`
 
@@ -417,7 +417,7 @@
 
 **Files:**
 
-- Create: `src/st/build/core/executor.py`
+- Create: `src/core/executor.py`
 - Create: `tests/core/test_executor.py`
 
 - [x] **Step 1：RED→GREEN 按计划执行并收集输出**
@@ -427,7 +427,7 @@
 - pytest：`tests/core/test_executor.py::test_executor_runs_layers_in_stable_order_and_collects_artifacts`
 - 目标 API：`TaskExecutor.execute(planned_build, tasks, context, verified_frontier=None) -> ExecutionResult`
 - 断言：按 planner 层和层内稳定顺序调用任务；只把显式上游产物传给节点；结果包含所有 `LogicalArtifact`。
-- 确定 RED：`st.build.core.executor` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`core.executor` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：实现 `verified_frontier=None` 的单线程同步参考执行器并收集 tuple 输出；本步明确不接受非空 frontier、不校验输出契约、不包装任务异常。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/core/test_planner.py tests/core/test_executor.py -q`
 
@@ -468,8 +468,8 @@
 
 **Files:**
 
-- Create: `src/st/build/release/__init__.py`
-- Create: `src/st/build/release/entries.py`
+- Create: `src/release/__init__.py`
+- Create: `src/release/entries.py`
 - Create: `tests/release/test_entries.py`
 
 - [x] **Step 1：在同一次首次 RED 中实现发布条目和新旧对象规则**
@@ -479,7 +479,7 @@
 - pytest：`tests/release/test_entries.py::test_release_entry_separates_transfer_identity_and_enforces_object_origin_rules`
 - 目标 API：`ResourceVariant`、`ReleaseObjectOrigin`、`ReleaseEntry(logical_path, variant, source_blob, source_md5, original_size, transfer_blob, transfer_size, list_version, object_version, file_url, subpackage_flag, object_origin)`
 - 断言：原始 MD5/大小和传输 SHA256/大小独立；正 Int32 list version、非负 Int32 大小/flag、object version 与逻辑路径合法；main 本次新上传对象必须用 `{current}`，low 本次新上传对象必须用 `{current}_low`；`HISTORICAL` 条目允许保留合法历史 object_version/URL。
-- 确定 RED：`st.build.release.entries` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`release.entries` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：实现不可变领域模型和对象来源校验；不出现六字段文本列名，不导入 compatibility。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/release/test_entries.py -q`
 
@@ -487,8 +487,8 @@
 
 **Files:**
 
-- Create: `src/st/build/release/snapshots.py`
-- Create: `src/st/build/release/manifests.py`
+- Create: `src/release/snapshots.py`
+- Create: `src/release/manifests.py`
 - Create: `tests/release/test_snapshots.py`
 - Create: `tests/release/test_manifests.py`
 
@@ -499,7 +499,7 @@
 - pytest：`tests/release/test_snapshots.py::test_release_snapshot_locks_variant_and_classifies_publication_membership`
 - 目标 API：`ReleaseArtifactClass`、`ReleaseMembership`、`RedirectSlice(container_logical_path, container, offset, length)`、`ReleaseSnapshotEntry(release_entry, artifact_class, memberships, assetbundle_dependencies, redirect_slice)`、`ReleaseSnapshot.create(variant, entries)`
 - 断言：snapshot 锁定单一 `ResourceVariant` 并拒绝混入另一 variant；依赖 `("b", "a", "b")` 原样保留；Redirect 保存容器路径/Blob/offset/length；被替代原 AB 分类为 `REDIRECT_SLICE` 且不具 `ReleaseMembership.FILE_LIST`；Redirect 容器分类为 `REDIRECT_CONTAINER`，在 snapshot 中路径唯一且同时具 `FILE_LIST`/`ASSET_BUNDLE_DATABASE`；普通文件没有 `ASSET_BUNDLE_DATABASE`；依赖目标/容器缺失、Blob 不匹配、越界或非法分类-membership 组合均失败。
-- 确定 RED：`st.build.release.snapshots` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`release.snapshots` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：从 `entries.py` 导入唯一 `ResourceVariant`，实现协议无关分类、membership、单 variant 与交叉引用校验；不包含 AB 数据库索引、`Depend:`、`Redirect:` 或换行规则。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/release/test_entries.py tests/release/test_snapshots.py -q`
 
@@ -513,7 +513,7 @@
   - `tests/release/test_manifest_codec.py::test_read_release_manifest_rejects_empty_stale_or_unknown_schema`
 - 目标 API：`ReleaseManifestPayload(schema_version, variant, file_list_no, snapshot, source_manifest_ids)`、`ReleaseManifestFactory.create(payload)`、`write_release_manifest`、`read_release_manifest`
 - 断言：payload 不含 ID；snapshot.variant 必须等于 payload.variant；每个 entry variant 必须一致；main/low 的 `CURRENT_UPLOAD` 分别严格使用 `{FileListNo}`/`{FileListNo}_low`，`HISTORICAL` 保留历史值；交换无序 snapshot entries/source IDs 不改变 ID，而 schema、variant、FileListNo、snapshot 内容或 source ID 任一变化都会改变 ID；依赖 tuple 顺序重复保留；直接构造 manifest 失败；读取重算并拒绝空/陈旧 ID、未知 schema 和 variant 不一致。
-- 确定 RED：三个测试在 `manifests.py` 与 `manifest_codec.py` 创建前同时添加，测试收集时以 `ModuleNotFoundError: st.build.release.manifests` 失败。
+- 确定 RED：三个测试在 `manifests.py` 与 `manifest_codec.py` 创建前同时添加，测试收集时以 `ModuleNotFoundError: release.manifests` 失败。
 - 最小 GREEN：从 `entries.py` 导入唯一 `ResourceVariant`；实现不可变 payload、私有 token 构造的 manifest、自动 ID 工厂、无序字段规范化、原子写和严格反序列化。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/release/test_entries.py tests/release/test_snapshots.py tests/release/test_manifests.py tests/release/test_manifest_codec.py -q`
 
@@ -521,8 +521,8 @@
 
 **Files:**
 
-- Create: `src/st/build/release/bundles.py`
-- Create: `src/st/build/release/bundle_codec.py`
+- Create: `src/release/bundles.py`
+- Create: `src/release/bundle_codec.py`
 - Create: `tests/release/test_bundles.py`
 - Create: `tests/release/test_bundle_codec.py`
 
@@ -536,7 +536,7 @@
   - `tests/release/test_bundle_codec.py::test_read_release_bundle_rejects_empty_stale_or_unknown_schema`
 - 目标 API：`ReleaseBundlePayload(schema_version, manifests, baseline_bundle_id)`、`ReleaseBundleFactory.create(payload)`、`write_release_bundle`、`read_release_bundle`
 - 断言：payload 不含 ID；无序 manifest 集合必须恰有一个 main、至多一个 low，并共享 FileListNo；历史低清 object_version 不被 bundle 二次拒绝；交换 manifest 输入顺序不改变 ID，而 schema、main ID、low 存在/ID、baseline 任一变化改变 ID；直接构造 bundle 失败；读取重算并拒绝空/陈旧 ID、未知 schema、重复 variant 和 FileListNo 不一致。
-- 确定 RED：三个测试在 `bundles.py` 与 `bundle_codec.py` 创建前同时添加，测试收集时以 `ModuleNotFoundError: st.build.release.bundles` 失败。
+- 确定 RED：三个测试在 `bundles.py` 与 `bundle_codec.py` 创建前同时添加，测试收集时以 `ModuleNotFoundError: release.bundles` 失败。
 - 最小 GREEN：从 `entries.py` 导入唯一 `ResourceVariant`；实现不可变 payload、私有 token 构造的 bundle、自动 ID 工厂、稳定 manifest 排序、原子写和严格反序列化，不实现发布器。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/release/test_manifests.py tests/release/test_manifest_codec.py tests/release/test_bundles.py tests/release/test_bundle_codec.py -q`
 
@@ -544,7 +544,7 @@
 
 **Files:**
 
-- Create: `src/st/build/release/activation.py`
+- Create: `src/release/activation.py`
 - Create: `tests/release/test_activation.py`
 
 - [x] **Step 1：RED→GREEN 分离可变激活记录**
@@ -554,7 +554,7 @@
 - pytest：`tests/release/test_activation.py::test_activation_record_tracks_bundle_state_and_rejects_unknown_schema`
 - 目标 API：`ReleaseActivationStatus`、`ReleaseActivationRecord(schema_version, activation_id, bundle_id, target, expected_generation, status, required_objects_digest, verified_objects_digest, error)`、`VerifiedReleaseBundle`
 - 断言：记录可表达 preparing/uploading/verifying/activating/active/failed/conflicted；只引用 bundle ID；schema 必须等于当前受支持常量，未知版本抛 `PublishError`；`VerifiedReleaseBundle` 只能由验证器在 Bundle 全部必要对象的远端哈希匹配后创建；创建新记录推进状态不改变 ReleaseBundle ID。
-- 确定 RED：`st.build.release.activation` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
+- 确定 RED：`release.activation` 尚未创建，测试收集时以 `ModuleNotFoundError` 失败。
 - 最小 GREEN：实现不可变状态快照和合法状态枚举，不实现状态迁移函数、CDN、CAS 或回滚。
 - 回归：`python -m pytest tests/quality/test_chinese_documentation.py tests/release/test_bundles.py tests/release/test_activation.py -q`
 
@@ -584,7 +584,7 @@ Expected: 全部 PASS，且不存在 Python 版本 skip。
 
 - [x] **Step 2：强制整体覆盖率 80%**
 
-Run: `python -m pytest --cov=st.build --cov-report=term-missing --cov-fail-under=80`
+Run: `python -m pytest --cov=core --cov=release --cov-report=term-missing --cov-fail-under=80`
 
 Expected: exit code 0；低于 80% 时 pytest 必须失败，不能只在文字中查看百分比。
 
@@ -593,8 +593,8 @@ Expected: exit code 0；低于 80% 时 pytest 必须失败，不能只在文字�
 Run:
 
 ```text
-python -m pytest tests/core --cov=st.build.core --cov-report=term-missing --cov-fail-under=90
-python -m pytest tests/release --cov=st.build.release --cov-report=term-missing --cov-fail-under=90
+python -m pytest tests/core --cov=core --cov-report=term-missing --cov-fail-under=90
+python -m pytest tests/release --cov=release --cov-report=term-missing --cov-fail-under=90
 ```
 
 Expected: 两条命令分别 exit code 0；不得用合并覆盖率掩盖任一包低于 90%。

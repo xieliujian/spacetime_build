@@ -30,7 +30,7 @@ Jenkins build number 猜资源版本，不通过文件名选择渠道，不把�
 ## 2. 模块结构与数据流
 
 ```text
-src/st/build/package/platforms/windows/
+src/package/platforms/windows/
   model.py             # 架构、输出种类、签名与安装器选项
   layout.py            # Player/资源/运行库布局计划
   app_config.py        # 结构化 appconfig 变换
@@ -41,7 +41,7 @@ src/st/build/package/platforms/windows/
   symbols.py           # PDB/符号索引与归档
   validator.py         # 结构、版本、架构、签名和资源入口验证
 tools/windows/setup/
-  st_build_setup.iss   # 固定、版本化安装器模板
+  setup.iss            # 固定、版本化安装器模板
 ```
 
 ```text
@@ -97,7 +97,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 1：Windows 模型
 
-**Files:** Create `src/st/build/package/platforms/windows/__init__.py`, `model.py`; Test `tests/package/windows/test_model.py`。
+**Files:** Create `src/package/platforms/windows/__init__.py`, `model.py`; Test `tests/package/windows/test_model.py`。
 
 - [ ] 写失败测试，覆盖 x86_64、输出集合、安装范围、运行库、PFX material/password refs、UKey provider/device/PIN ref、公开 thumbprint、unsigned 测试限制和非法组合。
 - [ ] 运行 `python -m pytest tests/package/windows/test_model.py -q`，预期 Windows 模型不存在。
@@ -106,7 +106,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 2：Unity Windows 导出
 
-**Files:** Modify `src/st/build/package/unity_export.py`; Test `tests/package/windows/test_unity_export.py`, `tests/package/test_unity_export.py`。
+**Files:** Modify `src/package/unity_export.py`; Test `tests/package/windows/test_unity_export.py`, `tests/package/test_unity_export.py`。
 
 - [ ] 写失败测试，覆盖目标架构、Player 输出、Development 标志、ReleaseBundle 入口、超时和取消。
 - [ ] 运行 `python -m pytest tests/package/windows/test_unity_export.py -q`，预期 Windows operation 不受支持。
@@ -115,7 +115,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 3：布局计划与安全应用
 
-**Files:** Create `src/st/build/package/platforms/windows/layout.py`; Test `tests/package/windows/test_layout.py`。
+**Files:** Create `src/package/platforms/windows/layout.py`; Test `tests/package/windows/test_layout.py`。
 
 - [ ] 写失败测试，覆盖 exe/Data、运行库、资源、重复目标、大小写冲突、链接和路径逃逸。
 - [ ] 运行 `python -m pytest tests/package/windows/test_layout.py -q`，预期 `WindowsLayoutPlanner` 不存在。
@@ -124,7 +124,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 4：appconfig 结构化变换
 
-**Files:** Create `src/st/build/package/platforms/windows/app_config.py`; Test `tests/package/windows/test_app_config.py`。
+**Files:** Create `src/package/platforms/windows/app_config.py`; Test `tests/package/windows/test_app_config.py`。
 
 - [ ] 写失败测试，覆盖 ReleaseBundle ID/入口、branch、版本、未知键、重复键和确定性 JSON。
 - [ ] 运行 `python -m pytest tests/package/windows/test_app_config.py -q`，预期 transformer 不存在。
@@ -133,7 +133,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 5：内部 inventory 策略
 
-**Files:** Create `src/st/build/package/platforms/windows/inventory.py`; Test `tests/package/windows/test_inventory.py`, `tests/fixtures/windows/inventory/`。
+**Files:** Create `src/package/platforms/windows/inventory.py`; Test `tests/package/windows/test_inventory.py`, `tests/fixtures/windows/inventory/`。
 
 - [ ] 写失败测试，固定隔离旧 fixture 的字段、排序、哈希、大小、版本和目录排除规则，并拒绝重复路径。
 - [ ] 运行 `python -m pytest tests/package/windows/test_inventory.py -q`，预期 inventory codec 不存在。
@@ -142,7 +142,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 6：可判别签名模型与分阶段计划
 
-**Files:** Create `src/st/build/package/platforms/windows/signing.py`; Test `tests/package/windows/test_signing.py`。
+**Files:** Create `src/package/platforms/windows/signing.py`; Test `tests/package/windows/test_signing.py`。
 
 - [ ] 写失败测试，覆盖 PFX material/password refs、UKey provider/device/PIN ref、公开 thumbprint、unsigned 测试限制、SHA-256、时间戳 allowlist 和 payload/installer 两阶段顺序。
 - [ ] 运行 `python -m pytest tests/package/windows/test_signing.py -q`，预期阶段化签名 planner 不存在。
@@ -151,7 +151,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 7：Player payload 签名执行与验证
 
-**Files:** Modify `src/st/build/package/platforms/windows/signing.py`; Test `tests/package/windows/test_payload_signer.py`。
+**Files:** Modify `src/package/platforms/windows/signing.py`; Test `tests/package/windows/test_payload_signer.py`。
 
 - [ ] 写失败测试，覆盖 Game/Launcher/DLL 稳定顺序、两种 signer 租约、非零退出、超时、取消、时间戳临时失败、异常清理和逐文件验证。
 - [ ] 运行 `python -m pytest tests/package/windows/test_payload_signer.py -q`，预期 payload executor 不存在。
@@ -160,7 +160,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 8：便携归档
 
-**Files:** Create `src/st/build/package/platforms/windows/portable.py`; Test `tests/package/windows/test_portable.py`。
+**Files:** Create `src/package/platforms/windows/portable.py`; Test `tests/package/windows/test_portable.py`。
 
 - [ ] 写失败测试，要求输入 payload 已全部签名，并覆盖稳定路径顺序、时间戳、权限、空目录策略、重复项和 zip-slip 防护。
 - [ ] 运行 `python -m pytest tests/package/windows/test_portable.py -q`，预期 `WindowsPortableBuilder` 不存在。
@@ -169,7 +169,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 9：安装器计划与固定模板
 
-**Files:** Create `src/st/build/package/platforms/windows/installer.py`, `tools/windows/setup/st_build_setup.iss`; Test `tests/package/windows/test_installer.py`。
+**Files:** Create `src/package/platforms/windows/installer.py`, `tools/windows/setup/setup.iss`; Test `tests/package/windows/test_installer.py`。
 
 - [ ] 写失败测试，要求输入 payload 已签名，并覆盖产品名/版本/publisher、安装范围、文件集合、非法脚本字符、输出发现和重复 exe。
 - [ ] 运行 `python -m pytest tests/package/windows/test_installer.py -q`，预期 builder/template 不存在。
@@ -178,7 +178,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 10：installer 签名执行与验证
 
-**Files:** Modify `src/st/build/package/platforms/windows/signing.py`; Test `tests/package/windows/test_installer_signer.py`。
+**Files:** Modify `src/package/platforms/windows/signing.py`; Test `tests/package/windows/test_installer_signer.py`。
 
 - [ ] 写失败测试，覆盖 INSTALLER 阶段、唯一 installer 输入、PFX/UKey 租约、时间戳、取消、异常清理和签名指纹。
 - [ ] 运行 `python -m pytest tests/package/windows/test_installer_signer.py -q`，预期 installer executor 不存在。
@@ -187,7 +187,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 11：符号收集
 
-**Files:** Create `src/st/build/package/platforms/windows/symbols.py`; Test `tests/package/windows/test_symbols.py`。
+**Files:** Create `src/package/platforms/windows/symbols.py`; Test `tests/package/windows/test_symbols.py`。
 
 - [ ] 写失败测试，覆盖 PDB/PE 对应关系、缺失/重复符号、相对路径和确定性 archive。
 - [ ] 运行 `python -m pytest tests/package/windows/test_symbols.py -q`，预期 collector 不存在。
@@ -196,7 +196,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 12：包体验证
 
-**Files:** Create `src/st/build/package/platforms/windows/validator.py`; Test `tests/package/windows/test_validator.py`。
+**Files:** Create `src/package/platforms/windows/validator.py`; Test `tests/package/windows/test_validator.py`。
 
 - [ ] 写失败测试，覆盖 PE 架构、版本资源、payload 签名、installer 签名、portable 内签名保持、Data 目录、appconfig、inventory、运行库和归档安全。
 - [ ] 运行 `python -m pytest tests/package/windows/test_validator.py -q`，预期 validator 不存在。
@@ -205,7 +205,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 
 ### Task 13：SDK hook 与渠道差异契约
 
-**Files:** Modify `src/st/build/package/sdk_hooks.py`; Test `tests/package/windows/test_sdk_hooks.py`, `tests/package/test_sdk_hooks.py`。
+**Files:** Modify `src/package/sdk_hooks.py`; Test `tests/package/windows/test_sdk_hooks.py`, `tests/package/test_sdk_hooks.py`。
 
 - [ ] 写失败测试，覆盖 default/cmge/zilong 等 fixture 的声明式 hook 输入输出、冲突和 Launcher 删除计划。
 - [ ] 运行 `python -m pytest tests/package/windows/test_sdk_hooks.py -q`，预期 Windows hook target 不受支持。
@@ -215,7 +215,7 @@ unsigned 是显式测试模式，不允许 production profile 使用。payload �
 ### Task 14：自动化门禁
 
 - [ ] 运行 `python -m pytest tests/package/windows tests/package tests/quality/test_chinese_documentation.py -q`。
-- [ ] 运行 `python -m pytest --cov=st.build.package.platforms.windows --cov-report=term-missing --cov-fail-under=90 tests/package/windows`。
+- [ ] 运行 `python -m pytest --cov=package.platforms.windows --cov-report=term-missing --cov-fail-under=90 tests/package/windows`。
 - [ ] 运行全量 pytest、Ruff、Pyright 和 compileall，预期全部退出码 0。
 
 ### Task 15：真实 Windows 平台验收

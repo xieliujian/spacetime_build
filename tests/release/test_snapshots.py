@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import pytest
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.release.entries import (
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from release.entries import (
     ReleaseEntry,
     ReleaseObjectOrigin,
     ResourceVariant,
 )
-from st.build.release.snapshots import (
+from release.snapshots import (
     RedirectSlice,
     ReleaseArtifactClass,
     ReleaseMembership,
@@ -139,7 +139,7 @@ def test_release_snapshot_locks_variant_and_classifies_publication_membership() 
     - 普通文件没有 ``ASSET_BUNDLE_DATABASE``；
     - 依赖目标/容器缺失、Blob 不匹配、越界或非法分类-membership 组合均失败。
 
-    当 ``st.build.release.snapshots`` 尚未创建时，测试收集阶段应以
+    当 ``release.snapshots`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除临时断言外不产生外部副作用。
     """
     container_blob = _blob(_SHA_C, size=1000)

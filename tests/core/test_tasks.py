@@ -13,14 +13,14 @@ from typing import get_type_hints
 
 import pytest
 
-from st.build.core.artifacts import (
+from core.artifacts import (
     ArtifactKind,
     ArtifactMetadata,
     BlobRef,
     LogicalArtifact,
 )
-from st.build.core.manifest_codec import canonical_json_bytes
-from st.build.core.tasks import (
+from core.manifest_codec import canonical_json_bytes
+from core.tasks import (
     ArtifactCollection,
     BuildContext,
     BuildTask,
@@ -71,7 +71,7 @@ def test_task_spec_plan_and_build_task_share_single_planning_contract() -> None:
     - ``execute(context, inputs)`` 返回 ``TaskResult``，其 ``outputs`` 为 tuple；
     - 协议没有 SVN、Unity、Jenkins 或上传方法。
 
-    当 ``st.build.core.tasks`` 尚未创建时，测试收集阶段应以
+    当 ``core.tasks`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入与内存构造外不产生外部副作用。
     """
     spec = TaskSpec(

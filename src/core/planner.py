@@ -14,9 +14,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from st.build.core.errors import PlanningError
-from st.build.core.graph import BuildGraph
-from st.build.core.tasks import BuildContext, TaskIdentity, TaskPlan
+from core.errors import PlanningError
+from core.graph import BuildGraph
+from core.tasks import BuildContext, TaskIdentity, TaskPlan
 
 
 def _utf8_key(name: str) -> bytes:

@@ -5,7 +5,48 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c86f0965-2fa7-4f82-97bb-a8eaeea5d5c9" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/artifacts.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/build_records.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/errors.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/executor.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/frontier.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/graph.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/manifest_codec.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/planner.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/core/tasks.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/release/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/release/activation.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/release/bundle_codec.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/release/bundles.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/release/entries.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/release/manifest_codec.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/release/manifests.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/st/build/release/snapshots.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_artifacts.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_artifacts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_build_records.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_build_records.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_errors.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_errors.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_executor.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_executor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_frontier.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_frontier.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_graph.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_graph.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_manifest_codec.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_manifest_codec.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_planner.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_planner.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/core/test_tasks.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/core/test_tasks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/release/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/release/test_activation.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/release/test_activation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/release/test_bundle_codec.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/release/test_bundle_codec.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/release/test_bundles.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/release/test_bundles.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/release/test_entries.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/release/test_entries.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/release/test_manifest_codec.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/release/test_manifest_codec.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/release/test_manifests.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/release/test_manifests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/release/test_snapshots.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/release/test_snapshots.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/release/test_validation_edges.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/release/test_validation_edges.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_distribution.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_distribution.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_package_import.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_package_import.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,11 +78,42 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "Python.python -m pytest tests/resource/test_task_base.py -q.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
     "last_opened_file_path": "F:/proj_se/develop/client/tools/build"
   }
 }]]></component>
+  <component name="RunManager">
+    <configuration name="python -m pytest tests/resource/test_task_base.py -q" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="spacetime_build" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/readme/version_build" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="pytest" />
+      <option name="PARAMETERS" value="tests/resource/test_task_base.py -q" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="true" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.python -m pytest tests/resource/test_task_base.py -q" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>

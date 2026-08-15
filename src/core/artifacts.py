@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
-from st.build.core.errors import ArtifactValidationError
+from core.errors import ArtifactValidationError
 
 # SHA256 必须恰好 64 位小写十六进制，保证缓存键与协议输出确定性。
 _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")

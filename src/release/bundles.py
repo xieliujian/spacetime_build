@@ -12,9 +12,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import cast
 
-from st.build.core.errors import PublishError
-from st.build.release.entries import ResourceVariant
-from st.build.release.manifests import ReleaseManifest
+from core.errors import PublishError
+from release.entries import ResourceVariant
+from release.manifests import ReleaseManifest
 
 # 当前受支持的 ReleaseBundle schema；未知版本在构造与读取时一律拒绝。
 RELEASE_BUNDLE_SCHEMA_VERSION = 1

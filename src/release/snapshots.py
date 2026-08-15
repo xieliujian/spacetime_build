@@ -14,9 +14,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.release.entries import ReleaseEntry, ResourceVariant
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from release.entries import ReleaseEntry, ResourceVariant
 
 _INT32_MAX = 2**31 - 1
 

@@ -11,9 +11,9 @@ import dataclasses
 
 import pytest
 
-from st.build.core.errors import PlanningError
-from st.build.core.graph import BuildGraph
-from st.build.core.tasks import TaskPlan, TaskSpec
+from core.errors import PlanningError
+from core.graph import BuildGraph
+from core.tasks import TaskPlan, TaskSpec
 
 
 def _plan(
@@ -54,7 +54,7 @@ def test_build_graph_exposes_dependencies_dependents_and_roots() -> None:
     - ``dependencies_of`` / ``dependents_of`` / ``roots`` 查询结果正确；
     - 查询视图不可变；输入列表后续修改不影响图内计划。
 
-    当 ``st.build.core.graph`` 尚未创建时，测试收集阶段应以
+    当 ``core.graph`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入与内存构造外不产生外部副作用。
     """
     shared = _plan("shared.base")

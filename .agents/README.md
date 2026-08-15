@@ -4,7 +4,7 @@
 
 ## 目录
 
-- `skills/st-build-development/`：开发和重构 `st.build` 的项目技能；
+- `skills/st-build-development/`：开发和重构直接顶级包构建系统的项目技能；
 - `prompts/`：可手动调用的复用提示词；
 - `superpowers/specs/`：设计规格索引；
 - `superpowers/plans/`：实施计划索引。

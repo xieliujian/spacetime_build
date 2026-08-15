@@ -13,13 +13,13 @@ from collections.abc import Mapping
 
 import pytest
 
-from st.build.core.artifacts import (
+from core.artifacts import (
     ArtifactKind,
     ArtifactMetadata,
     BlobRef,
     LogicalArtifact,
 )
-from st.build.core.errors import ArtifactValidationError
+from core.errors import ArtifactValidationError
 
 _VALID_SHA256 = "a" * 64
 
@@ -62,7 +62,7 @@ def test_artifact_metadata_is_typed_immutable_and_canonicalizable() -> None:
     - ``attributes`` 接受按 key 排序后可稳定编码的 ``tuple[tuple[str, str], ...]``；
     - 拒绝任意 ``Mapping[str, object]``、重复 key，以及非字符串值（含非 str key）。
 
-    当 ``st.build.core.artifacts`` 尚未创建时，测试收集阶段应以
+    当 ``core.artifacts`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入外不产生外部副作用。
     """
     attributes: tuple[tuple[str, str], ...] = (

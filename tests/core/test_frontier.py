@@ -11,21 +11,21 @@ import dataclasses
 
 import pytest
 
-from st.build.core.artifacts import (
+from core.artifacts import (
     ArtifactKind,
     ArtifactMetadata,
     BlobRef,
     LogicalArtifact,
 )
-from st.build.core.frontier import (
+from core.frontier import (
     BlobHashVerifier,
     CompletedTaskRecord,
     ExecutionFrontier,
     ResumeContext,
     VerifiedFrontier,
 )
-from st.build.core.graph import BuildGraph
-from st.build.core.tasks import TaskIdentity, TaskPlan, TaskSpec
+from core.graph import BuildGraph
+from core.tasks import TaskIdentity, TaskPlan, TaskSpec
 
 
 _VALID_SHA256_A = "a" * 64
@@ -82,7 +82,7 @@ def test_completed_task_record_captures_all_resume_identity_fields() -> None:
       schema 和 upstream identities；
     - 禁止退化为仅保存 BlobRef 集合或最后任务名/布尔 completed。
 
-    当 ``st.build.core.frontier`` 尚未创建时，测试收集阶段应以
+    当 ``core.frontier`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入与内存构造外不产生外部副作用。
     """
     upstream = TaskIdentity(digest="u" * 64)

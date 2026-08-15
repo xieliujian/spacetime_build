@@ -16,30 +16,30 @@ import os
 from pathlib import Path
 from typing import cast
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.core.manifest_codec import canonical_json_bytes
-from st.build.release.bundles import (
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from core.manifest_codec import canonical_json_bytes
+from release.bundles import (
     RELEASE_BUNDLE_SCHEMA_VERSION,
     ReleaseBundle,
     ReleaseBundlePayload,
     bind_release_bundle,
 )
-from st.build.release.entries import (
+from release.entries import (
     ReleaseEntry,
     ReleaseObjectOrigin,
     ResourceVariant,
 )
-from st.build.release.manifest_codec import (
+from release.manifest_codec import (
     ReleaseManifestFactory,
     release_manifest_payload_dict,
 )
-from st.build.release.manifests import (
+from release.manifests import (
     RELEASE_MANIFEST_SCHEMA_VERSION,
     ReleaseManifest,
     ReleaseManifestPayload,
 )
-from st.build.release.snapshots import (
+from release.snapshots import (
     RedirectSlice,
     ReleaseArtifactClass,
     ReleaseMembership,

@@ -15,8 +15,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
+from core.artifacts import BlobRef
+from core.errors import PublishError
 
 # 原始内容 MD5：恰好 32 位小写十六进制，与传输侧 SHA256 身份分离。
 _MD5_PATTERN = re.compile(r"^[0-9a-f]{32}$")

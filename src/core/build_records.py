@@ -15,8 +15,8 @@ from datetime import datetime
 from enum import Enum
 from typing import cast
 
-from st.build.core.artifacts import LogicalArtifact
-from st.build.core.errors import ArtifactValidationError
+from core.artifacts import LogicalArtifact
+from core.errors import ArtifactValidationError
 
 # 当前受支持的执行记录 schema；未知版本一律拒绝，避免静默误读旧/新格式。
 BUILD_EXECUTION_SCHEMA_VERSION = 1

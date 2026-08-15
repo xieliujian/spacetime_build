@@ -1,4 +1,4 @@
-"""验证 ``st.build.core`` 公开异常继承契约。
+"""验证 ``core`` 公开异常继承契约。
 
 本模块确认设计文档中的完整业务异常树：七个具体异常均直接或间接继承
 ``BuildError``，并通过标准 ``raise ... from`` 机制保留消息与 ``__cause__``。
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from st.build.core import (
+from core import (
     ArtifactValidationError,
     BuildError,
     CompatibilityError,
@@ -31,8 +31,8 @@ def test_error_hierarchy_matches_public_contract() -> None:
       ``CompatibilityError`` 均为 ``BuildError`` 的子类；
     - 通过 ``raise ... from`` 抛出时，异常消息与 ``__cause__`` 由标准异常机制保留。
 
-    当 ``st.build.core`` 尚未创建时，测试收集阶段应以
-    ``ModuleNotFoundError: No module named 'st.build.core'`` 失败。除 Python
+    当 ``core`` 尚未创建时，测试收集阶段应以
+    ``ModuleNotFoundError: No module named 'core'`` 失败。除 Python
     正常的模块导入缓存外，本测试不产生外部副作用。
     """
     concrete_errors = (

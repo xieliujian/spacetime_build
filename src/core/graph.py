@@ -11,8 +11,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from st.build.core.errors import PlanningError
-from st.build.core.tasks import TaskPlan
+from core.errors import PlanningError
+from core.tasks import TaskPlan
 
 
 @dataclass(frozen=True, slots=True)

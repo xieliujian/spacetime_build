@@ -14,10 +14,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from enum import Enum
 
-from st.build.core.errors import PublishError
-from st.build.core.manifest_codec import canonical_json_bytes
-from st.build.release.bundles import ReleaseBundle
-from st.build.release.entries import ReleaseObjectOrigin
+from core.errors import PublishError
+from core.manifest_codec import canonical_json_bytes
+from release.bundles import ReleaseBundle
+from release.entries import ReleaseObjectOrigin
 
 # 当前受支持的激活记录 schema；未知版本一律拒绝。
 RELEASE_ACTIVATION_SCHEMA_VERSION = 1

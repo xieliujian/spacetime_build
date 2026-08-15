@@ -12,19 +12,19 @@ from datetime import datetime, timezone
 
 import pytest
 
-from st.build.core.artifacts import (
+from core.artifacts import (
     ArtifactKind,
     ArtifactMetadata,
     BlobRef,
     LogicalArtifact,
 )
-from st.build.core.build_records import (
+from core.build_records import (
     BUILD_EXECUTION_SCHEMA_VERSION,
     BuildExecutionRecord,
     BuildManifestPayload,
     BuildStatus,
 )
-from st.build.core.errors import ArtifactValidationError
+from core.errors import ArtifactValidationError
 
 _VALID_SHA256 = "b" * 64
 
@@ -87,7 +87,7 @@ def test_build_manifest_payload_contains_only_reproducible_content() -> None:
     - ``artifacts`` / ``task_identities`` 必须为元组，非法类型抛出
       ``ArtifactValidationError``。
 
-    当 ``st.build.core.build_records`` 尚未创建时，测试收集阶段应以
+    当 ``core.build_records`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入外不产生外部副作用。
     """
     artifact = _valid_artifact()

@@ -13,34 +13,34 @@ from typing import Any, cast
 
 import pytest
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.release.bundle_codec import (
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from release.bundle_codec import (
     ReleaseBundleFactory,
     read_release_bundle,
     release_bundle_payload_dict,
     write_release_bundle,
 )
-from st.build.release.bundles import (
+from release.bundles import (
     RELEASE_BUNDLE_SCHEMA_VERSION,
     ReleaseBundlePayload,
 )
-from st.build.release.entries import (
+from release.entries import (
     ReleaseEntry,
     ReleaseObjectOrigin,
     ResourceVariant,
 )
-from st.build.release.manifest_codec import (
+from release.manifest_codec import (
     ReleaseManifestFactory,
     read_release_manifest,
     release_manifest_payload_dict,
     write_release_manifest,
 )
-from st.build.release.manifests import (
+from release.manifests import (
     RELEASE_MANIFEST_SCHEMA_VERSION,
     ReleaseManifestPayload,
 )
-from st.build.release.snapshots import (
+from release.snapshots import (
     RedirectSlice,
     ReleaseArtifactClass,
     ReleaseMembership,

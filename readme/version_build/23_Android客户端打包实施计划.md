@@ -21,17 +21,17 @@
 
 ### Task 1：PackageRequest 与执行状态
 
-**Files:** Create `src/st/build/package/__init__.py`, `model.py`; Test `tests/package/test_model.py`。
+**Files:** Create `src/package/__init__.py`, `model.py`; Test `tests/package/test_model.py`。
 
 - [ ] 写失败测试，覆盖唯一 BuildPlatform、固定 revision、ReleaseBundle ID、版本、profile、状态和非法空值。
-- [ ] 运行 `python -m pytest tests/package/test_model.py -q`，预期 `st.build.package.model` 不存在。
+- [ ] 运行 `python -m pytest tests/package/test_model.py -q`，预期 `package.model` 不存在。
 - [ ] 实现不可变 PackageRequest、PackageArtifact、PackageStatus 和 PackageExecutionRecord。
 - [ ] 重跑同一命令，预期通过。
 - [ ] 运行中文文档检查。
 
 ### Task 2：确定性 PackageManifest
 
-**Files:** Create `src/st/build/package/manifest.py`; Test `tests/package/test_manifest.py`。
+**Files:** Create `src/package/manifest.py`; Test `tests/package/test_manifest.py`。
 
 - [ ] 写失败测试，覆盖 payload/factory、工具链、release ID、产物摘要、秘密/运行状态排除和陈旧 ID。
 - [ ] 运行 `python -m pytest tests/package/test_manifest.py -q`，预期 `PackageManifestFactory` 不存在。
@@ -41,7 +41,7 @@
 
 ### Task 3：ReleaseBundle 前置验证
 
-**Files:** Create `src/st/build/package/release_gate.py`; Test `tests/package/test_release_gate.py`。
+**Files:** Create `src/package/release_gate.py`; Test `tests/package/test_release_gate.py`。
 
 - [ ] 写失败测试，覆盖未验证 bundle、平台/变体不符、陈旧入口和允许的已激活/已验证状态。
 - [ ] 运行 `python -m pytest tests/package/test_release_gate.py -q`，预期 `PackageReleaseGate` 不存在。
@@ -51,7 +51,7 @@
 
 ### Task 4：隔离工程准备
 
-**Files:** Create `src/st/build/package/preparation.py`; Test `tests/package/test_preparation.py`。
+**Files:** Create `src/package/preparation.py`; Test `tests/package/test_preparation.py`。
 
 - [ ] 写失败测试，覆盖 source snapshot、workspace、SDK hook 输入、StreamingAssets 入口和源目录零修改。
 - [ ] 运行 `python -m pytest tests/package/test_preparation.py -q`，预期 `PackageWorkspacePreparer` 不存在。
@@ -61,7 +61,7 @@
 
 ### Task 5：Unity Player 导出
 
-**Files:** Create `src/st/build/package/unity_export.py`; Test `tests/package/test_unity_export.py`。
+**Files:** Create `src/package/unity_export.py`; Test `tests/package/test_unity_export.py`。
 
 - [ ] 写失败测试，覆盖 BuildPlatform、Unity 版本、项目路径、输出根和 build setting 映射。
 - [ ] 运行 `python -m pytest tests/package/test_unity_export.py -q`，预期 `UnityPlayerExporter` 不存在。
@@ -73,7 +73,7 @@
 
 ### Task 6：Android 模型
 
-**Files:** Create `src/st/build/package/platforms/__init__.py`, `android/__init__.py`, `android/model.py`; Test `tests/package/android/test_model.py`。
+**Files:** Create `src/package/platforms/__init__.py`, `android/__init__.py`, `android/model.py`; Test `tests/package/android/test_model.py`。
 
 - [ ] 写失败测试，覆盖 APK/AAB、ABI 去重/排序、build type、application ID 和 versionCode。
 - [ ] 运行 `python -m pytest tests/package/android/test_model.py -q`，预期 Android 模型不存在。
@@ -83,7 +83,7 @@
 
 ### Task 7：Gradle 工程检查
 
-**Files:** Create `src/st/build/package/platforms/android/gradle_project.py`; Test `tests/package/android/test_gradle_project.py`。
+**Files:** Create `src/package/platforms/android/gradle_project.py`; Test `tests/package/android/test_gradle_project.py`。
 
 - [ ] 写失败测试，覆盖 launcher/unityLibrary、wrapper、settings、build files 和路径逃逸。
 - [ ] 运行 `python -m pytest tests/package/android/test_gradle_project.py -q`，预期 `GradleProjectInspector` 不存在。
@@ -93,7 +93,7 @@
 
 ### Task 8：Gradle 配置计划
 
-**Files:** Create `src/st/build/package/platforms/android/gradle_config.py`; Test `tests/package/android/test_gradle_config.py`。
+**Files:** Create `src/package/platforms/android/gradle_config.py`; Test `tests/package/android/test_gradle_config.py`。
 
 - [ ] 写失败测试，覆盖 application ID、版本、ABI、仓库白名单、离线锁和重复配置。
 - [ ] 运行 `python -m pytest tests/package/android/test_gradle_config.py -q`，预期 `GradleConfigurationPlanner` 不存在。
@@ -103,17 +103,17 @@
 
 ### Task 9：应用 Gradle 配置计划
 
-**Files:** Create `src/st/build/package/platforms/android/gradle_apply.py`, `tools/gradle/st_build_config.gradle`; Test `tests/package/android/test_gradle_apply.py`。
+**Files:** Create `src/package/platforms/android/gradle_apply.py`, `tools/gradle/build_config.gradle`; Test `tests/package/android/test_gradle_apply.py`。
 
 - [ ] 写失败测试，覆盖仅限 workspace、原子写、重复应用、冲突、取消和失败回滚工程树。
 - [ ] 运行 `python -m pytest tests/package/android/test_gradle_apply.py -q`，预期 `GradleConfigurationApplier` 不存在。
-- [ ] 实现 applier：写入结构化 JSON 请求并通过 ProcessRunner 调用固定 `st_build_config.gradle`；脚本只处理白名单字段，不执行请求中的代码。
+- [ ] 实现 applier：写入结构化 JSON 请求并通过 ProcessRunner 调用固定 `build_config.gradle`；脚本只处理白名单字段，不执行请求中的代码。
 - [ ] 重跑同一命令，预期工程树 Golden 稳定且失败不留半配置。
 - [ ] 运行中文文档检查。
 
 ### Task 10：AndroidManifest 变换
 
-**Files:** Create `src/st/build/package/platforms/android/manifest.py`; Test `tests/package/android/test_manifest.py`。
+**Files:** Create `src/package/platforms/android/manifest.py`; Test `tests/package/android/test_manifest.py`。
 
 - [ ] 写失败测试，覆盖 XML namespace、package、version、权限去重、meta-data 冲突和可调试标志。
 - [ ] 运行 `python -m pytest tests/package/android/test_manifest.py -q`，预期 `AndroidManifestTransformer` 不存在。
@@ -123,7 +123,7 @@
 
 ### Task 11：SDK 扩展接口
 
-**Files:** Create `src/st/build/package/sdk_hooks.py`; Test `tests/package/test_sdk_hooks.py`。
+**Files:** Create `src/package/sdk_hooks.py`; Test `tests/package/test_sdk_hooks.py`。
 
 - [ ] 写失败测试，覆盖 hook 顺序、声明输入输出、冲突检测和无 SDK 空计划。
 - [ ] 运行 `python -m pytest tests/package/test_sdk_hooks.py -q`，预期 `PackageSdkHook` 不存在。
@@ -135,7 +135,7 @@
 
 ### Task 12：签名请求
 
-**Files:** Create `src/st/build/package/platforms/android/signing.py`; Test `tests/package/android/test_signing.py`。
+**Files:** Create `src/package/platforms/android/signing.py`; Test `tests/package/android/test_signing.py`。
 
 - [ ] 写失败测试，覆盖 SecretRef、证书指纹、APK/AAB 差异、秘密传递方式、参数脱敏和禁止 SHA1/MD5。
 - [ ] 运行 `python -m pytest tests/package/android/test_signing.py -q`，预期 `AndroidSigningPlanner` 不存在。
@@ -145,7 +145,7 @@
 
 ### Task 13：未签名 APK 构建
 
-**Files:** Create `src/st/build/package/platforms/android/apk.py`; Test `tests/package/android/test_apk.py`。
+**Files:** Create `src/package/platforms/android/apk.py`; Test `tests/package/android/test_apk.py`。
 
 - [ ] 写失败测试，覆盖 Gradle task、输出发现、重复 APK、非零退出、超时和取消。
 - [ ] 运行 `python -m pytest tests/package/android/test_apk.py -q`，预期 `AndroidApkBuilder` 不存在。
@@ -155,7 +155,7 @@
 
 ### Task 14：签名秘密租约与执行
 
-**Files:** Create `src/st/build/package/platforms/android/signer.py`; Test `tests/package/android/test_signer.py`。
+**Files:** Create `src/package/platforms/android/signer.py`; Test `tests/package/android/test_signer.py`。
 
 - [ ] 写失败测试，覆盖 SecretProvider 租约、受限临时 properties、环境传递、apksigner、异常/取消清理和命令日志脱敏。
 - [ ] 运行 `python -m pytest tests/package/android/test_signer.py -q`，预期 `AndroidPackageSigner` 不存在。
@@ -165,7 +165,7 @@
 
 ### Task 15：AAB 构建
 
-**Files:** Create `src/st/build/package/platforms/android/aab.py`; Test `tests/package/android/test_aab.py`。
+**Files:** Create `src/package/platforms/android/aab.py`; Test `tests/package/android/test_aab.py`。
 
 - [ ] 写失败测试，覆盖 bundle task、输出发现、签名配置、bundletool 检查和取消。
 - [ ] 运行 `python -m pytest tests/package/android/test_aab.py -q`，预期 `AndroidAppBundleBuilder` 不存在。
@@ -175,7 +175,7 @@
 
 ### Task 16：native symbols
 
-**Files:** Create `src/st/build/package/platforms/android/symbols.py`; Test `tests/package/android/test_symbols.py`。
+**Files:** Create `src/package/platforms/android/symbols.py`; Test `tests/package/android/test_symbols.py`。
 
 - [ ] 写失败测试，覆盖 ABI 目录、libil2cpp.so、mapping、缺符号和确定性 archive。
 - [ ] 运行 `python -m pytest tests/package/android/test_symbols.py -q`，预期 `AndroidSymbolCollector` 不存在。
@@ -185,7 +185,7 @@
 
 ### Task 17：包体验证器
 
-**Files:** Create `src/st/build/package/platforms/android/validator.py`; Test `tests/package/android/test_validator.py`。
+**Files:** Create `src/package/platforms/android/validator.py`; Test `tests/package/android/test_validator.py`。
 
 - [ ] 写失败测试，覆盖签名、application ID、版本、ABI、资源入口、重复条目和 zip 安全。
 - [ ] 运行 `python -m pytest tests/package/android/test_validator.py -q`，预期 `AndroidPackageValidator` 不存在。
@@ -197,7 +197,7 @@
 
 ### Task 18：受控包体上传
 
-**Files:** Create `src/st/build/package/uploader.py`; Test `tests/package/test_uploader.py`。
+**Files:** Create `src/package/uploader.py`; Test `tests/package/test_uploader.py`。
 
 - [ ] 写失败测试，覆盖 PackageManifest 前置、内容键、同哈希幂等、异哈希冲突、取消和上传回执。
 - [ ] 运行 `python -m pytest tests/package/test_uploader.py -q`，预期 `PackageUploader` 不存在。
@@ -208,7 +208,7 @@
 ### Task 19：自动化门禁
 
 - [ ] 运行 `python -m pytest tests/package tests/quality/test_chinese_documentation.py -q`。
-- [ ] 运行 `python -m pytest --cov=st.build.package --cov-report=term-missing --cov-fail-under=90 tests/package`。
+- [ ] 运行 `python -m pytest --cov=package --cov-report=term-missing --cov-fail-under=90 tests/package`。
 - [ ] 运行 `python -m pytest -q`、`python -m ruff format --check .`、`python -m ruff check .`、`python -m pyright` 和 `python -m compileall -q src tests`，全部退出码 0。
 
 ### Task 20：真实 Android 平台验收

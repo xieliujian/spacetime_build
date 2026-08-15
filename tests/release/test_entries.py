@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import pytest
 
-from st.build.core.artifacts import BlobRef
-from st.build.core.errors import PublishError
-from st.build.release.entries import (
+from core.artifacts import BlobRef
+from core.errors import PublishError
+from release.entries import (
     ReleaseEntry,
     ReleaseObjectOrigin,
     ResourceVariant,
@@ -121,7 +121,7 @@ def test_release_entry_separates_transfer_identity_and_enforces_object_origin_ru
     - ``HISTORICAL`` 允许保留合法历史 ``object_version`` / URL；
     - 对象不可变；对象来源规则违反时抛出 ``PublishError``。
 
-    当 ``st.build.release.entries`` 尚未创建时，测试收集阶段应以
+    当 ``release.entries`` 尚未创建时，测试收集阶段应以
     ``ModuleNotFoundError`` 失败。除导入外不产生外部副作用。
     """
     main_current = _make_entry(

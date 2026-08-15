@@ -16,18 +16,18 @@ import os
 from pathlib import Path
 from typing import Any, cast
 
-from st.build.core.artifacts import (
+from core.artifacts import (
     ArtifactKind,
     ArtifactMetadata,
     BlobRef,
     LogicalArtifact,
 )
-from st.build.core.build_records import (
+from core.build_records import (
     BuildManifest,
     BuildManifestPayload,
     bind_build_manifest,
 )
-from st.build.core.errors import ArtifactValidationError
+from core.errors import ArtifactValidationError
 
 
 def _sorted_attributes(

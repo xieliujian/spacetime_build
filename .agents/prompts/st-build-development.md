@@ -1,6 +1,6 @@
 ---
 name: st-build-development
-description: 按项目设计、测试和中文注释规范实现 st.build 功能。
+description: 按项目设计、测试和中文注释规范实现直接顶级包构建系统功能。
 ---
 
 # /st-build-development

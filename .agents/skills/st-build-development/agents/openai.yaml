@@ -1,4 +1,4 @@
 interface:
   display_name: "ST Build Development"
   short_description: "开发和审查全新的 Python Unity 构建系统"
-  default_prompt: "Use $st-build-development to implement the requested st.build change with tests, detailed Chinese documentation, and legacy client protocol compatibility."
+  default_prompt: "Use $st-build-development to implement the requested direct-package build-system change with tests, detailed Chinese documentation, and legacy client protocol compatibility."
