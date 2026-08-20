@@ -14,6 +14,7 @@ import signal
 import subprocess
 import threading
 import time
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO, Callable, Protocol, cast
@@ -31,6 +32,7 @@ from ports.process import (
     ProcessResult,
     ProcessRunner,
     ProcessTextSink,
+    SecretBindingTarget,
 )
 
 _READ_CHUNK_BYTES = 64 * 1024
@@ -391,6 +393,106 @@ class LocalProcessRunner(ProcessRunner):
         request: ProcessRequest,
         cancellation: CancellationToken | None = None,
     ) -> ProcessResult:
+        """解析短期秘密 binding，执行请求并在所有路径关闭租约。"""
+        request_object = cast(object, request)
+        if not isinstance(request_object, ProcessRequest):
+            raise TypeError("request 必须是 ProcessRequest")
+        cancellation_object = cast(object, cancellation)
+        if cancellation_object is not None and not isinstance(
+            cancellation_object, CancellationToken
+        ):
+            raise TypeError("cancellation 必须是 CancellationToken 或 None")
+        lease = request_object.secret_lease
+        temporary_paths: list[Path] = []
+        try:
+            if cancellation_object is not None and cancellation_object.is_cancelled:
+                no_secret_request = replace(request_object, secret_bindings=(), secret_lease=None)
+                return self._run_request(no_secret_request, cancellation_object)
+            prepared, stdin_secret, temporary_paths, secret_values = self._prepare_secret_request(
+                request_object
+            )
+            return self._run_request(
+                prepared,
+                cancellation_object,
+                stdin_secret=stdin_secret,
+                secret_values=secret_values,
+            )
+        finally:
+            for path in temporary_paths:
+                try:
+                    path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            if lease is not None:
+                lease.close()
+
+    def _prepare_secret_request(
+        self,
+        request: ProcessRequest,
+    ) -> tuple[ProcessRequest, bytes | None, list[Path], tuple[str, ...]]:
+        """把租约秘密绑定到白名单进程槽位并返回无秘密请求副本。"""
+        if bool(request.secret_bindings) != (request.secret_lease is not None):
+            raise ConfigurationError("秘密 binding 与 lease 必须同时提供或同时为空")
+        if not request.secret_bindings:
+            return request, None, [], ()
+        assert request.secret_lease is not None
+        arguments = list(request.arguments)
+        environment = dict(request.environment)
+        stdin_secret: bytes | None = None
+        temporary_paths: list[Path] = []
+        secret_values: list[str] = []
+        try:
+            for binding in request.secret_bindings:
+                value = request.secret_lease.resolve(binding.binding_id)
+                if not isinstance(value, str) or not value:
+                    raise ConfigurationError("秘密 binding 解析结果必须是非空字符串")
+                secret_values.append(value)
+                if binding.target is SecretBindingTarget.ARGUMENT:
+                    index = int(binding.slot)
+                    if index >= len(arguments) or index not in request.redacted_argument_indexes:
+                        raise ConfigurationError("秘密参数必须绑定到存在且已脱敏的 argv 索引")
+                    arguments[index] = value
+                elif binding.target is SecretBindingTarget.ENVIRONMENT:
+                    if binding.slot in environment:
+                        raise ConfigurationError("秘密环境槽位不得覆盖显式环境变量")
+                    environment[binding.slot] = value
+                elif binding.target is SecretBindingTarget.STDIN:
+                    if stdin_secret is not None:
+                        raise ConfigurationError("一个进程只能有一个秘密 stdin binding")
+                    stdin_secret = value.encode("utf-8")
+                else:
+                    path = request.working_directory / f".secret-{binding.binding_id}.tmp"
+                    resolved = path.resolve()
+                    if resolved.parent != request.working_directory.resolve():
+                        raise ConfigurationError("秘密临时文件路径越出工作目录")
+                    path.write_text(value, encoding="utf-8")
+                    temporary_paths.append(path)
+                    environment[binding.slot] = str(path)
+            return (
+                replace(
+                    request,
+                    arguments=tuple(arguments),
+                    environment=tuple(environment.items()),
+                    secret_bindings=(),
+                    secret_lease=None,
+                ),
+                stdin_secret,
+                temporary_paths,
+                tuple(secret_values),
+            )
+        except BaseException:
+            for path in temporary_paths:
+                path.unlink(missing_ok=True)
+            raise
+
+    def _run_request(
+        self,
+        request: ProcessRequest,
+        cancellation: CancellationToken | None = None,
+        *,
+        stdin_secret: bytes | None = None,
+        secret_values: tuple[str, ...] = (),
+    ) -> ProcessResult:
         """执行一个已校验请求并收集有界、脱敏诊断。
 
         参数：
@@ -401,8 +503,7 @@ class LocalProcessRunner(ProcessRunner):
             覆盖完成、超时、取消、终止、启动和输出失败的 ``ProcessResult``。
 
         异常、约束与副作用：
-            请求类型非法时抛出 ``TypeError``；第一层不支持的秘密字段在任何文件或
-            程序创建前抛出 ``ConfigurationError``。其他运行失败转换为结果。方法
+            请求类型非法时抛出 ``TypeError``；其他运行失败转换为结果。方法
             可能创建两个精确输出文件并启动独立进程组，但不记录环境或秘密值。
         """
         request_object = cast(object, request)
@@ -422,12 +523,6 @@ class LocalProcessRunner(ProcessRunner):
             if stdout_sink is not None and stderr_sink is not None
             else []
         )
-
-        # 第一层明确拒绝秘密功能，且拒绝发生在日志、文件和程序创建之前。
-        if request_object.secret_bindings or request_object.secret_lease is not None:
-            # 调用 run 即转移已提供 sink 的关闭责任；拒绝秘密不访问或关闭秘密租约。
-            self._close_writers(provided_writers)
-            raise ConfigurationError("LocalProcessRunner 第一层尚不支持秘密绑定或租约")
 
         started_at = time.monotonic()
         if cancellation_object is not None and cancellation_object.is_cancelled:
@@ -496,10 +591,16 @@ class LocalProcessRunner(ProcessRunner):
                 stdout_writer, stderr_writer = provided_writers
                 writers.extend(provided_writers)
             else:
-                stdout_writer = ExternalStreamWriter(request_object.stdout_path)
+                stdout_writer = ExternalStreamWriter(
+                    request_object.stdout_path,
+                    secret_values=secret_values,
+                )
                 writers.append(stdout_writer)
                 created_paths.append(request_object.stdout_path)
-                stderr_writer = ExternalStreamWriter(request_object.stderr_path)
+                stderr_writer = ExternalStreamWriter(
+                    request_object.stderr_path,
+                    secret_values=secret_values,
+                )
                 writers.append(stderr_writer)
                 created_paths.append(request_object.stderr_path)
         except BaseException as exc:
@@ -535,7 +636,7 @@ class LocalProcessRunner(ProcessRunner):
 
         process: subprocess.Popen[bytes]
         try:
-            process = self._spawn(request_object)
+            process = self._spawn(request_object, stdin_secret=stdin_secret)
         except BaseException as exc:
             close_error = self._close_writers(writers)
             result = self._make_result(
@@ -564,24 +665,31 @@ class LocalProcessRunner(ProcessRunner):
             stderr_writer,
         )
 
-    def _spawn(self, request: ProcessRequest) -> subprocess.Popen[bytes]:
+    def _spawn(
+        self,
+        request: ProcessRequest,
+        *,
+        stdin_secret: bytes | None = None,
+    ) -> subprocess.Popen[bytes]:
         """以独立进程组和双二进制管道启动请求。
 
         参数：
             request: 已校验且不含秘密字段的请求。
+            stdin_secret: 可选的 UTF-8 秘密 stdin 内容。
 
         返回：
             已启动、stdout/stderr 均为 PIPE 的 ``Popen`` 对象。
 
         异常、约束与副作用：
             启动异常原样传播给 ``run`` 转换；使用 ``shell=False``、显式 cwd/env、
-            DEVNULL stdin，并按平台创建可整体终止的进程组。
+            管道或 DEVNULL stdin，并按平台创建可整体终止的进程组。
         """
         arguments = [str(request.executable), *request.arguments]
+        stdin = subprocess.PIPE if stdin_secret is not None else subprocess.DEVNULL
         if os.name == "nt":
-            return subprocess.Popen(
+            process = subprocess.Popen(
                 arguments,
-                stdin=subprocess.DEVNULL,
+                stdin=stdin,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=request.working_directory,
@@ -589,16 +697,29 @@ class LocalProcessRunner(ProcessRunner):
                 shell=False,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             )
-        return subprocess.Popen(
-            arguments,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=request.working_directory,
-            env=dict(request.environment),
-            shell=False,
-            start_new_session=True,
-        )
+        else:
+            process = subprocess.Popen(
+                arguments,
+                stdin=stdin,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=request.working_directory,
+                env=dict(request.environment),
+                shell=False,
+                start_new_session=True,
+            )
+        if stdin_secret is not None and process.stdin is not None:
+            try:
+                process.stdin.write(stdin_secret)
+                process.stdin.close()
+            except BaseException:
+                try:
+                    process.kill()
+                    process.wait(timeout=self._termination_grace_seconds)
+                except BaseException:
+                    pass
+                raise
+        return process
 
     def _run_spawned(
         self,

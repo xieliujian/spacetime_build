@@ -15,6 +15,27 @@ from ports.process import (
     SecretLease,
     SecretProcessBinding,
 )
+from ports.ci import CiJobClient, CiJobHandle, CiJobRequest, CiJobState, CiJobStatus
+from ports.http import (
+    HttpMethod,
+    HttpRequest,
+    HttpResponse,
+    HttpTransport,
+    SecretHttpBinding,
+    SecretHttpTarget,
+)
+from ports.secrets import SecretLeaseRequest, SecretProvider
+from ports.source import ResolvedSource, SourceProvider, SourceRef, SourceSnapshot
+from ports.storage import (
+    CompareAndSwapRequest,
+    CompareAndSwapResult,
+    ObjectStore,
+    ObjectVerification,
+    PutObjectRequest,
+    StoredObject,
+)
+from ports.unity import UnityBatchRequest, UnityBatchResult
+from ports.workspace import WorkspaceLease, WorkspaceProvider, WorkspaceRequest
 
 __all__ = [
     "CancellationToken",
@@ -26,4 +47,32 @@ __all__ = [
     "SecretBindingTarget",
     "SecretLease",
     "SecretProcessBinding",
+    "CiJobClient",
+    "CiJobHandle",
+    "CiJobRequest",
+    "CiJobState",
+    "CiJobStatus",
+    "HttpMethod",
+    "HttpRequest",
+    "HttpResponse",
+    "HttpTransport",
+    "SecretHttpBinding",
+    "SecretHttpTarget",
+    "SecretLeaseRequest",
+    "SecretProvider",
+    "ResolvedSource",
+    "SourceProvider",
+    "SourceRef",
+    "SourceSnapshot",
+    "CompareAndSwapRequest",
+    "CompareAndSwapResult",
+    "ObjectStore",
+    "ObjectVerification",
+    "PutObjectRequest",
+    "StoredObject",
+    "UnityBatchRequest",
+    "UnityBatchResult",
+    "WorkspaceLease",
+    "WorkspaceProvider",
+    "WorkspaceRequest",
 ]

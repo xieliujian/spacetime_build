@@ -320,10 +320,15 @@ class StreamingRedactor:
         "_private_end_marker_length",
         "_private_end_pattern",
         "_private_end_scan",
+        "_secret_values",
         "max_pending_chars",
     )
 
-    def __init__(self, max_pending_chars: int = 1_048_576) -> None:
+    def __init__(
+        self,
+        max_pending_chars: int = 1_048_576,
+        secret_values: tuple[str, ...] = (),
+    ) -> None:
         """校验上限并初始化空 pending 与生命周期状态。
 
         参数：
@@ -346,7 +351,12 @@ class StreamingRedactor:
                 "max_pending_chars 必须是至少容纳 PEM BEGIN sentinel 的整数: "
                 f"{MIN_STREAMING_PENDING_CHARS}"
             )
+        if not isinstance(secret_values, tuple) or any(
+            not isinstance(value, str) or not value for value in secret_values
+        ):
+            raise ValueError("secret_values 必须是非空字符串元组")
         self.max_pending_chars = max_pending_object
+        self._secret_values = secret_values
         self._pending = ""
         self._private_end_scan = ""
         self._private_end_pattern: re.Pattern[str] | None = None
@@ -432,7 +442,7 @@ class StreamingRedactor:
                     prefix = self._pending[:line_start]
                     self._pending = self._pending[begin_match.end() :]
                     if prefix:
-                        output.append(redact_text(prefix))
+                        output.append(self._redact(prefix))
                     output.append(_REDACTED_LONG_LINE)
                     output.append(_REDACTED_PRIVATE_KEY)
                     self._enter_fail_closed_private_key()
@@ -440,7 +450,7 @@ class StreamingRedactor:
                 prefix = self._pending[: begin_match.start()]
                 self._pending = self._pending[begin_match.end() :]
                 if prefix:
-                    output.append(redact_text(prefix))
+                    output.append(self._redact(prefix))
                 output.append(_REDACTED_PRIVATE_KEY)
                 if begin_match.end() - line_start <= self.max_pending_chars:
                     expected_end_marker = f"-----END {begin_match.group('label')}-----"
@@ -473,7 +483,7 @@ class StreamingRedactor:
                     ):
                         prefix = candidate_text[: candidate_match.start()]
                         if prefix:
-                            output.append(redact_text(prefix))
+                            output.append(self._redact(prefix))
                         output.append(_REDACTED_PRIVATE_KEY)
                         self._pending = ""
                         self._enter_fail_closed_private_key()
@@ -499,7 +509,7 @@ class StreamingRedactor:
                 ):
                     prefix = line[: candidate_match.start()]
                     if prefix:
-                        output.append(redact_text(prefix))
+                        output.append(self._redact(prefix))
                     output.append(_REDACTED_PRIVATE_KEY)
                     self._enter_fail_closed_private_key()
                     continue
@@ -512,7 +522,7 @@ class StreamingRedactor:
                 continue
 
             segment = f"{line}{line_ending}"
-            output.append(redact_text(segment))
+            output.append(self._redact(segment))
 
     def finalize(self) -> str:
         """结束输入并返回最后一段已脱敏 pending 文本。
@@ -547,8 +557,12 @@ class StreamingRedactor:
         tail = self._pending
         self._pending = ""
         if tail.endswith("\r"):
-            return f"{redact_text(tail[:-1])}\r"
-        return redact_text(tail)
+            return f"{self._redact(tail[:-1])}\r"
+        return self._redact(tail)
+
+    def _redact(self, text: str) -> str:
+        """使用通用规则和本次租约秘密值脱敏一段完整文本。"""
+        return redact_text(text, secret_values=self._secret_values)
 
     def _enter_fail_closed_private_key(self) -> None:
         """进入没有可接受 END marker 的永久私钥丢弃态。

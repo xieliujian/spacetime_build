@@ -314,7 +314,7 @@ class ExternalStreamWriter:
 
     __slots__ = ("_byte_count", "_closed", "_lock", "_redactor", "_stream", "path")
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, secret_values: tuple[str, ...] = ()) -> None:
         """校验父目录并排他创建二进制外部日志文件。
 
         参数：
@@ -330,7 +330,7 @@ class ExternalStreamWriter:
         self.path = _require_path(path, field_name="path")
         _validate_regular_directory(self.path.parent, field_name="path.parent")
         self._stream: BinaryIO = self.path.open(mode="xb")
-        self._redactor = StreamingRedactor()
+        self._redactor = StreamingRedactor(secret_values=secret_values)
         self._byte_count = 0
         self._closed = False
         self._lock = RLock()

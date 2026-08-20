@@ -20,7 +20,6 @@ from typing import Callable, cast
 import pytest
 
 import integrations.process as process_module
-from core.errors import ConfigurationError
 from integrations import LocalProcessRunner
 from observability import (
     ErrorCode,
@@ -339,30 +338,35 @@ def test_runner_closes_provided_sinks_on_pre_cancel_without_unlinking(tmp_path: 
         stderr_writer.close()
 
 
-def test_runner_closes_provided_sinks_when_secret_is_rejected(tmp_path: Path) -> None:
-    """验证 spawn 前秘密拒绝不会访问租约，也不会遗留已移交的打开文件句柄。"""
-    request = _request(tmp_path, "wait")
-    stdout_writer = ExternalStreamWriter(request.stdout_path)
-    stderr_writer = ExternalStreamWriter(request.stderr_path)
+def test_runner_binds_environment_secret_and_closes_lease(tmp_path: Path) -> None:
+    """验证秘密环境 binding 在 spawn 前注入、输出脱敏且租约最终关闭。"""
+    request = _request(tmp_path, "inspect")
+
+    class Lease:
+        """提供单个测试秘密并记录关闭。"""
+
+        closed = False
+
+        def resolve(self, binding_id: str) -> str:
+            """返回测试秘密。"""
+            assert binding_id == "id"
+            return "secret-value"
+
+        def close(self) -> None:
+            """记录租约已关闭。"""
+            self.closed = True
+
+    lease = Lease()
     secret_request = replace(
         request,
-        stdout_sink=stdout_writer,
-        stderr_sink=stderr_writer,
-        secret_bindings=(SecretProcessBinding("id", SecretBindingTarget.STDIN, "stdin"),),
+        environment=tuple(item for item in request.environment if item[0] != "ONLY_KEY"),
+        secret_lease=lease,
+        secret_bindings=(SecretProcessBinding("id", SecretBindingTarget.ENVIRONMENT, "ONLY_KEY"),),
     )
-
-    try:
-        with pytest.raises(ConfigurationError):
-            _runner().run(secret_request)
-        assert request.stdout_path.exists()
-        assert request.stderr_path.exists()
-        with pytest.raises(RuntimeError):
-            stdout_writer.write_text("late")
-        with pytest.raises(RuntimeError):
-            stderr_writer.write_text("late")
-    finally:
-        stdout_writer.close()
-        stderr_writer.close()
+    result = _runner().run(secret_request)
+    assert result.outcome is ProcessOutcome.COMPLETED
+    assert "secret-value" not in request.stdout_path.read_text(encoding="utf-8")
+    assert lease.closed
 
 
 def test_runner_preserves_provided_sink_files_when_spawn_fails(tmp_path: Path) -> None:
@@ -420,8 +424,8 @@ def test_runner_replaces_invalid_utf8_and_treats_nonzero_as_completed(
         assert "before-�-after" in result.stdout_tail
 
 
-def test_pre_cancel_and_secret_rejection_happen_before_output_creation(tmp_path: Path) -> None:
-    """验证预取消不启动，秘密在 spawn 前拒绝且租约方法从未调用。"""
+def test_pre_cancel_and_secret_close_happen_before_output_creation(tmp_path: Path) -> None:
+    """验证预取消不启动、秘密不解析且租约仍在 finally 关闭。"""
     token = CancellationToken()
     token.cancel()
     request = _request(tmp_path, "wait")
@@ -449,9 +453,8 @@ def test_pre_cancel_and_secret_rejection_happen_before_output_creation(tmp_path:
         secret_lease=lease,
         secret_bindings=(SecretProcessBinding("id", SecretBindingTarget.STDIN, "stdin"),),
     )
-    with pytest.raises(ConfigurationError):
-        _runner().run(secret_request)
-    assert lease.calls == 0
+    _runner().run(secret_request, token)
+    assert lease.calls == 1
     assert not request.stdout_path.exists()
 
 
