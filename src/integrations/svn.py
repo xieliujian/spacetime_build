@@ -42,13 +42,16 @@ class SvnSourceProvider(SourceProvider):
         try:
             root = ElementTree.fromstring(output)
             entry = root.find("entry")
-            if entry is None or entry.get("revision") is None:
+            if entry is None:
+                raise ValueError("缺少 entry")
+            revision_text = entry.get("revision")
+            if revision_text is None:
                 raise ValueError("缺少 entry revision")
             repository = entry.find("repository")
             uuid = repository.findtext("uuid") if repository is not None else None
             if not uuid:
                 raise ValueError("缺少 repository uuid")
-            return ResolvedSource("svn", source.url, int(entry.get("revision")), uuid)
+            return ResolvedSource("svn", source.url, int(revision_text), uuid)
         except (ElementTree.ParseError, ValueError) as exc:
             raise SourceError("SVN info XML 无法解析") from exc
 

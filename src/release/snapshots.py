@@ -10,7 +10,7 @@ AB 数据库索引、``Depend:``/``Redirect:`` 文本或换行规则。导入本
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import cast
 
@@ -19,6 +19,7 @@ from core.errors import PublishError
 from release.entries import ReleaseEntry, ResourceVariant
 
 _INT32_MAX = 2**31 - 1
+_RELEASE_SNAPSHOT_FACTORY_TOKEN = object()
 
 
 class ReleaseArtifactClass(Enum):
@@ -290,7 +291,35 @@ def _blob_identity(blob: BlobRef) -> tuple[str, str, int]:
     return (blob.locator, blob.sha256, blob.size)
 
 
-@dataclass(frozen=True, slots=True)
+def _bind_release_snapshot(
+    *,
+    variant: ResourceVariant,
+    entries: tuple[ReleaseSnapshotEntry, ...],
+) -> ReleaseSnapshot:
+    """绑定已完成校验的快照字段。
+
+    参数：
+        variant: 已校验的快照变体。
+        entries: 已校验且已规范为元组的快照条目。
+
+    返回：
+        仅由 ``ReleaseSnapshot.create`` 返回的不可变快照。
+
+    异常：
+        无；调用方必须先完成全部领域校验。
+
+    约束与副作用：
+        使用模块私有 token 和 ``object.__new__``，阻止公开 dataclass 构造器绕过
+        ``create``；纯内存绑定。
+    """
+    snapshot = object.__new__(ReleaseSnapshot)
+    object.__setattr__(snapshot, "variant", variant)
+    object.__setattr__(snapshot, "entries", entries)
+    object.__setattr__(snapshot, "_factory_token", _RELEASE_SNAPSHOT_FACTORY_TOKEN)
+    return snapshot
+
+
+@dataclass(frozen=True, slots=True, init=False)
 class ReleaseSnapshot:
     """锁定单一变体的协议无关完整发布快照。
 
@@ -314,6 +343,7 @@ class ReleaseSnapshot:
 
     variant: ResourceVariant
     entries: tuple[ReleaseSnapshotEntry, ...]
+    _factory_token: object = field(default=None, repr=False, compare=False)
 
     @staticmethod
     def create(
@@ -418,4 +448,4 @@ class ReleaseSnapshot:
                     f"container_size={container_blob.size}"
                 )
 
-        return ReleaseSnapshot(variant=variant, entries=entry_tuple)
+        return _bind_release_snapshot(variant=variant, entries=entry_tuple)

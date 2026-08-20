@@ -8,6 +8,8 @@ Jenkins、CDN，也不导入 ``compatibility``。
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from core.artifacts import BlobRef
@@ -379,3 +381,18 @@ def test_release_snapshot_locks_variant_and_classifies_publication_membership() 
             ResourceVariant.MAIN,
             (illegal_slice, container),
         )
+
+
+def test_release_snapshot_can_only_be_created_by_validating_factory() -> None:
+    """验证快照不能通过公开 dataclass 构造器绕过工厂。"""
+    entry = _snap_entry(
+        _entry(logical_path="scene/factory.ab"),
+        artifact_class=ReleaseArtifactClass.ASSET_BUNDLE,
+        memberships=_BOTH,
+    )
+    snapshot = ReleaseSnapshot.create(ResourceVariant.MAIN, (entry,))
+    assert snapshot.variant is ResourceVariant.MAIN
+    with pytest.raises(TypeError):
+        ReleaseSnapshot(ResourceVariant.MAIN, (entry,))  # type: ignore[call-arg]
+    with pytest.raises(TypeError):
+        replace(snapshot, entries=())

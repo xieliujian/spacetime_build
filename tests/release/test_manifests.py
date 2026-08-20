@@ -46,6 +46,7 @@ def _entry(
     variant: ResourceVariant,
     object_version: str,
     object_origin: ReleaseObjectOrigin,
+    list_version: int = 123,
     source_sha: str = _SHA_A,
     transfer_sha: str = _SHA_B,
     source_md5: str = _MD5_A,
@@ -59,7 +60,7 @@ def _entry(
         original_size=100,
         transfer_blob=_blob(transfer_sha, size=80),
         transfer_size=80,
-        list_version=1,
+        list_version=list_version,
         object_version=object_version,
         file_url=f"https://cdn.example/{logical_path}",
         subpackage_flag=0,
@@ -241,5 +242,27 @@ def test_release_manifest_payload_locks_variant_and_current_object_versions() ->
             variant=ResourceVariant.MAIN,
             file_list_no=123,
             snapshot=wrong_ver_snap,
+            source_manifest_ids=("build-aaa",),
+        )
+
+
+def test_release_manifest_payload_requires_entry_list_version_to_equal_file_list_no() -> None:
+    """验证每个发布条目的 list_version 必须等于 manifest 的 FileListNo。"""
+    entry = _ab_entry(
+        _entry(
+            logical_path="scene/list-version.ab",
+            variant=ResourceVariant.MAIN,
+            object_version="123",
+            object_origin=ReleaseObjectOrigin.CURRENT_UPLOAD,
+            list_version=1,
+        )
+    )
+    snapshot = ReleaseSnapshot.create(ResourceVariant.MAIN, (entry,))
+    with pytest.raises(PublishError, match="list_version"):
+        ReleaseManifestPayload(
+            schema_version=RELEASE_MANIFEST_SCHEMA_VERSION,
+            variant=ResourceVariant.MAIN,
+            file_list_no=123,
+            snapshot=snapshot,
             source_manifest_ids=("build-aaa",),
         )

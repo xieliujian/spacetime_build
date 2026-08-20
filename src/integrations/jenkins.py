@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+from typing import cast
 from urllib.parse import quote, urlencode
 
 from core.errors import ToolExecutionError
@@ -64,21 +65,26 @@ class JenkinsJobClient(CiJobClient):
             payload = self._json(response)
             if payload.get("cancelled"):
                 return CiJobStatus(handle, CiJobState.CANCELLED)
-            executable = payload.get("executable")
-            if not isinstance(executable, dict) or not isinstance(executable.get("number"), int):
+            executable_raw = payload.get("executable")
+            if not isinstance(executable_raw, dict):
                 return CiJobStatus(handle, CiJobState.QUEUED)
-            new_handle = CiJobHandle(handle.job_name, handle.queue_id, executable["number"])
+            executable = cast(dict[str, object], executable_raw)
+            build_number = executable.get("number")
+            if not isinstance(build_number, int):
+                return CiJobStatus(handle, CiJobState.QUEUED)
+            new_handle = CiJobHandle(handle.job_name, handle.queue_id, build_number)
             return CiJobStatus(new_handle, CiJobState.RUNNING)
         response = self._send(HttpMethod.GET, f"/job/{job}/{handle.build_id}/api/json")
         payload = self._json(response)
         if payload.get("building"):
             return CiJobStatus(handle, CiJobState.RUNNING)
         result = payload.get("result")
-        if result == "SUCCESS":
-            return CiJobStatus(handle, CiJobState.SUCCESS, result)
-        if result == "ABORTED":
-            return CiJobStatus(handle, CiJobState.CANCELLED, result)
-        return CiJobStatus(handle, CiJobState.FAILED, result if isinstance(result, str) else None)
+        result_text = result if isinstance(result, str) else None
+        if result_text == "SUCCESS":
+            return CiJobStatus(handle, CiJobState.SUCCESS, result_text)
+        if result_text == "ABORTED":
+            return CiJobStatus(handle, CiJobState.CANCELLED, result_text)
+        return CiJobStatus(handle, CiJobState.FAILED, result_text)
 
     def cancel(self, handle: CiJobHandle) -> bool:
         """取消队列项或运行中构建，终态重复取消返回 False。"""
@@ -100,9 +106,9 @@ class JenkinsJobClient(CiJobClient):
     def _json(response: HttpResponse) -> dict[str, object]:
         """解析 Jenkins JSON 对象并拒绝非对象响应。"""
         try:
-            payload = json.loads(response.body.decode("utf-8"))
+            payload_raw: object = json.loads(response.body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise ToolExecutionError("Jenkins 响应不是合法 UTF-8 JSON") from exc
-        if not isinstance(payload, dict):
+        if not isinstance(payload_raw, dict):
             raise ToolExecutionError("Jenkins 响应 JSON 根节点不是对象")
-        return payload
+        return cast(dict[str, object], payload_raw)

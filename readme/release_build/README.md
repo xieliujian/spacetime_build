@@ -25,7 +25,13 @@
 - `integrations.process`：不经 shell 的本地进程执行、双流捕获、超时、取消和完整进程树终止。
 - 第二层：HTTP、Secrets、Workspace、SVN 读取、Unity、Jenkins、ObjectStore/CAS 的端口与
   可测试适配器；本地对象存储、环境/文件凭据和 fake 外部端口已覆盖自动化测试。
+- 第三层资源公共模型：唯一 `BuildPlatform`、固定资源输入、十二类资源任务身份、精确输出
+  发现、类型化 Unity 操作、内容寻址 Blob 提交、单任务执行服务、显式 BuildManifest 聚合，
+  以及跨节点 `TaskResultPackage` 的确定性 TOML/framing 校验。
 
-当前仍没有资源打包、版本生成、聚合、上传或正式发布命令。真实 SVN、Unity、Jenkins、
-Secrets 和供应商 CDN 尚未验收；十二个资源任务、旧客户端兼容输出、发布编排和 CLI 仍属于
-后续层。自动化替身与本机 Python fixture 通过不代表真实外部环境已经可用。
+当前仍没有面向正式版本的 Unity 资源打包命令、版本生成、上传或正式发布命令。十二个任务
+当前提供的是固定输入目录到 CAS 的自动化契约实现，不等于真实 Unity 产物已验收；真实 SVN、
+Unity、Jenkins、Secrets 和供应商 CDN 尚未验收。Redirect、分包、低清、发布编排和 CLI 仍
+属于后续层。第三阶段兼容协议的纯 Python DTO、Writer、Parser 和合成 Golden 已完成，但
+真实历史输出双跑与旧客户端 Parser 验收仍保持 PENDING。自动化替身与本机 Python fixture
+通过不代表真实外部环境已经可用。

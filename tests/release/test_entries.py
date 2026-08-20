@@ -240,3 +240,15 @@ def test_release_entry_separates_transfer_identity_and_enforces_object_origin_ru
             object_origin=ReleaseObjectOrigin.HISTORICAL,
             file_url="https://cdn.example/v/hist/scene/a.assetbundle",
         )
+
+
+def test_release_entry_rejects_unsafe_historical_object_version_segments() -> None:
+    """验证历史 object_version 也只能是安全的单一路径段。"""
+    unsafe_values = ("/", "\\", ".", "%", "?", "#", "a\tb", "a\rb", "a\nb", "\ud800")
+    for value in unsafe_values:
+        with pytest.raises(PublishError):
+            _make_entry(
+                object_version=value,
+                object_origin=ReleaseObjectOrigin.HISTORICAL,
+                file_url="https://cdn.example/v/history/scene/a.assetbundle",
+            )

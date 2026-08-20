@@ -186,6 +186,32 @@ def _is_allowed_current_object_version(variant: ResourceVariant, object_version:
     raise PublishError(f"未知 ResourceVariant: {variant!r}")
 
 
+def _validate_object_version_segment(object_version: str) -> None:
+    """校验 object_version 是安全的单一路径段。
+
+    参数：
+        object_version: 当前或历史对象版本字符串。
+
+    返回：
+        ``None``；通过时表示该值可安全拼接到客户端 URL 的第一段。
+
+    异常：
+        含斜杠、点段、协议分隔字符、控制字符或无法严格 UTF-8 编码时抛出
+        ``PublishError``。
+
+    约束与副作用：
+        纯内存校验；CURRENT_UPLOAD 的哨兵格式仍由上层规则继续校验。
+    """
+    if any(char in object_version for char in "/\\.%?#\t\r\n"):
+        raise PublishError(f"object_version 必须是安全的单一路径段，实际为 {object_version!r}")
+    if object_version in {".", ".."}:
+        raise PublishError(f"object_version 不得是点路径段，实际为 {object_version!r}")
+    try:
+        object_version.encode("utf-8", errors="strict")
+    except UnicodeEncodeError as exc:
+        raise PublishError("object_version 必须是合法 UTF-8 文本") from exc
+
+
 @dataclass(frozen=True, slots=True)
 class ReleaseEntry:
     """单条协议无关发布条目。
@@ -281,6 +307,7 @@ class ReleaseEntry:
         object_version = cast(object, self.object_version)
         if not isinstance(object_version, str) or object_version == "":
             raise PublishError("object_version 不得为空")
+        _validate_object_version_segment(object_version)
 
         # 本次新上传：哨兵或已展开正整数 FileListNo；禁止任意历史风格字符串。
         if self.object_origin is ReleaseObjectOrigin.CURRENT_UPLOAD:

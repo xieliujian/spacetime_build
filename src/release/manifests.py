@@ -124,6 +124,12 @@ class ReleaseManifestPayload:
                 raise PublishError(
                     f"快照条目 variant 必须与 payload.variant 一致: {entry.logical_path!r}"
                 )
+            if entry.list_version != self.file_list_no:
+                raise PublishError(
+                    "ReleaseEntry.list_version 必须等于 payload.file_list_no: "
+                    f"条目 {entry.logical_path!r} 的 list_version={entry.list_version}, "
+                    f"file_list_no={self.file_list_no}"
+                )
             # manifest 层要求 CURRENT_UPLOAD 已展开为具体 FileListNo，禁止残留哨兵。
             if entry.object_origin is ReleaseObjectOrigin.CURRENT_UPLOAD:
                 if entry.object_version != expected_current:

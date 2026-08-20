@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -12,6 +13,7 @@ from integrations.http import UrllibHttpTransport
 from integrations.svn import SvnSourceProvider
 from ports.http import HttpMethod, HttpRequest
 from ports.process import ProcessOutcome, ProcessRequest, ProcessResult
+from ports.process import CancellationToken
 from ports.source import SourceRef
 
 
@@ -23,8 +25,13 @@ class _SvnRunner:
         self.tmp_path = tmp_path
         self.requests: list[ProcessRequest] = []
 
-    def run(self, request: ProcessRequest) -> ProcessResult:
+    def run(
+        self,
+        request: ProcessRequest,
+        cancellation: CancellationToken | None = None,
+    ) -> ProcessResult:
         """按命令类型写入受控 stdout 并返回成功结果。"""
+        del cancellation
         self.requests.append(request)
         if request.arguments[0] == "info":
             request.stdout_path.write_text(
@@ -82,9 +89,12 @@ def test_svn_provider_fixes_head_revision_and_hashes_export_tree(tmp_path: Path)
 
 def test_urllib_transport_rejects_response_over_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     """验证 HTTP 传输在读取前后都执行响应大小限制。"""
-    monkeypatch.setattr(
-        http_module.urllib_request, "urlopen", lambda *_args, **_kwargs: _Response()
-    )
+
+    def fake_urlopen(_request: object, **_kwargs: Any) -> _Response:
+        """返回固定的超限响应。"""
+        return _Response()
+
+    monkeypatch.setattr(http_module.urllib_request, "urlopen", fake_urlopen)
     with pytest.raises(ToolExecutionError, match="响应超过"):
         UrllibHttpTransport().send(
             HttpRequest(HttpMethod.GET, "https://example.test", max_response_bytes=1)

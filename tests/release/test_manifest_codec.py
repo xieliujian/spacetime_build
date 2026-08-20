@@ -59,6 +59,7 @@ def _entry(
     object_version: str = "123",
     object_origin: ReleaseObjectOrigin = ReleaseObjectOrigin.CURRENT_UPLOAD,
     variant: ResourceVariant = ResourceVariant.MAIN,
+    list_version: int = 123,
     source_sha: str = _SHA_A,
     transfer_sha: str = _SHA_B,
     source_md5: str = _MD5_A,
@@ -72,7 +73,7 @@ def _entry(
         original_size=100,
         transfer_blob=_blob(transfer_sha, size=80),
         transfer_size=80,
-        list_version=1,
+        list_version=list_version,
         object_version=object_version,
         file_url=f"https://cdn.example/{logical_path}",
         subpackage_flag=0,
@@ -210,10 +211,47 @@ def test_release_manifest_factory_stabilizes_unordered_inputs_and_hashes_all_ide
         _payload(
             file_list_no=124,
             entries=(
-                _ab(_entry(logical_path="z/last.ab", object_version="124"), deps=("b", "a", "b")),
-                entry_a,
-                dep_a,
-                dep_b,
+                _ab(
+                    _entry(
+                        logical_path="z/last.ab",
+                        object_version="124",
+                        list_version=124,
+                    ),
+                    deps=("b", "a", "b"),
+                ),
+                _ab(
+                    _entry(
+                        logical_path="a/first.ab",
+                        object_version="100",
+                        object_origin=ReleaseObjectOrigin.HISTORICAL,
+                        list_version=124,
+                        source_sha=_SHA_B,
+                        transfer_sha=_SHA_A,
+                        source_md5=_MD5_B,
+                    )
+                ),
+                _ab(
+                    _entry(
+                        logical_path="a",
+                        object_version="90",
+                        object_origin=ReleaseObjectOrigin.HISTORICAL,
+                        list_version=124,
+                        source_sha=_SHA_B,
+                        transfer_sha=_SHA_B,
+                        source_md5=_MD5_B,
+                    )
+                ),
+                _ab(
+                    _entry(
+                        logical_path="b",
+                        object_version="91",
+                        object_origin=ReleaseObjectOrigin.HISTORICAL,
+                        list_version=124,
+                        source_sha=_SHA_A,
+                        transfer_sha=_SHA_A,
+                        source_md5=_MD5_A,
+                    )
+                ),
             ),
         ),
         _payload(

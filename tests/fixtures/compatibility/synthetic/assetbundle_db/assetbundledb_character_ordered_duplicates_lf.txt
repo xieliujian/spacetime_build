@@ -1,0 +1,3 @@
+character/a.assetbundle	0
+	Depend:1	1
+character/b.assetbundle	1

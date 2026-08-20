@@ -72,7 +72,7 @@ def _entry(
         original_size=100,
         transfer_blob=_blob(transfer_sha, size=80),
         transfer_size=80,
-        list_version=1,
+        list_version=123,
         object_version=object_version,
         file_url=f"https://cdn.example/{logical_path}",
         subpackage_flag=0,

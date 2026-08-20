@@ -5,7 +5,9 @@
 ## 当前状态
 
 - 第一阶段工程骨架和第二阶段纯 Python 领域内核已经实现并通过质量门禁。
-- 第三阶段旧客户端兼容协议处于规划中，尚无可执行构建、发布或迁移命令。
+- 第三阶段旧客户端兼容协议的纯 Python DTO、Writer、Parser 和合成 Golden 已实现，真实历史
+  双跑和旧客户端解析验收仍为 PENDING；资源构建第三层公共模型和自动化任务契约已实现，尚无
+  可执行真实 Unity 构建、发布或迁移命令。
 - 总体设计见 `readme/version_build/00_全新构建系统设计.md`。
 - 第一阶段计划见 `readme/version_build/12_第一阶段实施计划.md`。
 - 第二阶段记录见 `readme/version_build/13_第二阶段领域模型与DAG实施计划.md`。
@@ -24,7 +26,8 @@
 
 - 最低版本：Python 3.10。
 - 各功能域直接作为顶级导入包，不增加工程名或构建系统名包裹层。
-- 源码采用 `src/<domain>/` 布局，当前已实现 `src/core/` 和 `src/release/`。
+- 源码采用 `src/<domain>/` 布局，当前已实现 `src/core/`、`src/release/`、`src/compatibility/`
+  和 `src/resource/`。
 - 核心领域层不得依赖 SVN、Unity、Jenkins 或具体 CDN 实现。
 - 外部系统通过 Protocol 和适配器接入。
 - 构建产物模型与发布模型必须分离。

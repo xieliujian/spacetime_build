@@ -1,0 +1,3 @@
+scene/a.assetbundle	0
+	Redirect:1	0	3
+scene/redirect/redirect_0.assetbundle	1

@@ -1,24 +1,27 @@
 # spacetime_build
 
 本项目用于在不修改旧构建工具的前提下，重新实现 SE 项目的 Unity 构建系统。工程采用
-Python 3.10+ 和 `src` 布局，各功能域直接作为顶级包；当前已实现 `core` 和 `release`。
+Python 3.10+ 和 `src` 布局，各功能域直接作为顶级包；当前已实现 `core`、`release`、
+`compatibility` 和资源构建公共层 `resource`。
 
-当前已完成第一阶段工程骨架和第二阶段纯 Python 领域内核，包括不可变产物模型、
+当前已完成第一阶段工程骨架、第二阶段纯 Python 领域内核和第三阶段兼容协议纯 Python
+实现，包括不可变产物模型、
 确定性 BuildManifest、任务 DAG、恢复 Frontier、同步参考 Executor，以及协议无关的
 ReleaseSnapshot、ReleaseManifest、ReleaseBundle 和激活状态机。
 
-第三阶段旧客户端兼容协议仍处于规划中；六字段文件列表、`assetbundledb_*.txt`、
-Redirect/分包协议输出、SVN/Unity/Jenkins/CDN 适配器、资源构建任务和 CLI 尚未实现。
-因此当前版本可用于领域模型与规划执行逻辑的开发验证，但还不能执行真实 Unity 构建、
-上传、激活或回滚。
+第三阶段已实现六字段文件列表和 `assetbundledb_*.txt` 的 DTO、Writer、Parser 及合成
+Golden；资源层已实现固定输入、十二类任务契约、CAS 文件产物、显式聚合和结果包 framing。
+真实历史输出双跑、真实 Unity 任务、Redirect/分包发布编排和 CLI 尚未实现。
+因此当前版本可用于领域模型、兼容协议和规划执行逻辑的开发验证，但还不能执行真实
+Unity 构建、上传、激活或回滚。
 
 阶段 3 至阶段 14 的设计与实施文档已经按模块写入 `readme/version_build/`，
 17 至 31 号文档已完成独立审查，覆盖兼容协议、外部适配器、资源、发布、CLI、
 Android、iOS、Windows、IL2CPP/SDK、分支、美术辅助和端到端迁移。
 这些文档是后续 TDD 实施依据，不表示对应代码或平台能力已经可用。
 
-当前验证基线为 Python 3.10.11：完整测试 51 项通过且无跳过，整体、`core`
-和 `release` 覆盖率均为 93%，Ruff、Pyright 和 compileall 检查通过。
+当前验证基线为 Python 3.10.11：包含资源层的目标回归 470 项通过，排除已知进程树长时节点；
+资源层独立覆盖率为 86%，Ruff、Pyright 和 compileall 检查通过。真实迁移证据仍保持 PENDING。
 
 ## 版本构建资料
 
@@ -50,7 +53,8 @@ Android、iOS、Windows、IL2CPP/SDK、分支、美术辅助和端到端迁移�
 - [正式版本资源构建与发布设计](readme/release_build/00_正式版本资源构建与发布设计.md)
 
 该目录记录当前确认的十二个独立资源任务、Jenkins 外部编排、版本号、日志、
-本地 CDN 和基础发布流程。相关代码和可执行命令仍处于规划中。
+本地 CDN 和基础发布流程。资源公共层自动化代码已开始实现，但完整发布代码和可执行命令
+仍处于规划中。
 
 ## 开发约束
 
