@@ -13,7 +13,10 @@
 ## 1. 状态与共同命令
 
 - 文档状态：**实施计划完成，独立审查通过**。
-- 代码状态：**规划中**。
+- 代码状态：共享 PackageRequest/Manifest/ReleaseGate、隔离准备、Unity 导出计划、
+  Android 模型、Gradle 工程/配置计划、Manifest 变换、SDK hook、签名计划和受控包体
+  上传的**纯 Python 自动化代码已实现并通过目标测试**；真实工具执行与平台验收仍为
+  `PENDING`。
 - 本文每个“中文文档检查”步骤执行 `python -m pytest tests/quality/test_chinese_documentation.py -q`。
 - 未经用户明确要求不创建 commit。
 
@@ -25,7 +28,7 @@
 
 - [ ] 写失败测试，覆盖唯一 BuildPlatform、固定 revision、ReleaseBundle ID、版本、profile、状态和非法空值。
 - [ ] 运行 `python -m pytest tests/package/test_model.py -q`，预期 `package.model` 不存在。
-- [ ] 实现不可变 PackageRequest、PackageArtifact、PackageStatus 和 PackageExecutionRecord。
+- [x] 实现不可变 PackageRequest、PackageArtifact、PackageStatus 和 PackageExecutionRecord。
 - [ ] 重跑同一命令，预期通过。
 - [ ] 运行中文文档检查。
 
@@ -35,7 +38,7 @@
 
 - [ ] 写失败测试，覆盖 payload/factory、工具链、release ID、产物摘要、秘密/运行状态排除和陈旧 ID。
 - [ ] 运行 `python -m pytest tests/package/test_manifest.py -q`，预期 `PackageManifestFactory` 不存在。
-- [ ] 实现不可变 manifest 与严格 JSON codec。
+- [x] 实现不可变 manifest 与严格 JSON codec。
 - [ ] 重跑同一命令，预期相同 payload 得到相同 ID。
 - [ ] 运行中文文档检查。
 
@@ -45,7 +48,7 @@
 
 - [ ] 写失败测试，覆盖未验证 bundle、平台/变体不符、陈旧入口和允许的已激活/已验证状态。
 - [ ] 运行 `python -m pytest tests/package/test_release_gate.py -q`，预期 `PackageReleaseGate` 不存在。
-- [ ] 实现只读 gate，不修改 ReleaseBundle 或激活状态。
+- [x] 实现只读 gate，不修改 ReleaseBundle 或激活状态。
 - [ ] 重跑同一命令，预期通过。
 - [ ] 运行中文文档检查。
 
@@ -55,7 +58,7 @@
 
 - [ ] 写失败测试，覆盖 source snapshot、workspace、SDK hook 输入、StreamingAssets 入口和源目录零修改。
 - [ ] 运行 `python -m pytest tests/package/test_preparation.py -q`，预期 `PackageWorkspacePreparer` 不存在。
-- [ ] 实现平台无关准备计划，只在 WorkspaceLease 内复制/变换。
+- [x] 实现平台无关准备计划，只在 WorkspaceLease 内复制/变换。
 - [ ] 重跑同一命令，预期通过并保持源树哈希。
 - [ ] 运行中文文档检查。
 
@@ -65,7 +68,7 @@
 
 - [ ] 写失败测试，覆盖 BuildPlatform、Unity 版本、项目路径、输出根和 build setting 映射。
 - [ ] 运行 `python -m pytest tests/package/test_unity_export.py -q`，预期 `UnityPlayerExporter` 不存在。
-- [ ] 实现类型化 UnityBatchRequest 生成和结果验证。
+- [x] 实现类型化 UnityBatchRequest 生成和结果验证。
 - [ ] 重跑同一命令，预期假 Unity 通过。
 - [ ] 运行中文文档检查。
 
@@ -77,7 +80,7 @@
 
 - [ ] 写失败测试，覆盖 APK/AAB、ABI 去重/排序、build type、application ID 和 versionCode。
 - [ ] 运行 `python -m pytest tests/package/android/test_model.py -q`，预期 Android 模型不存在。
-- [ ] 实现不可变 AndroidPackageOptions、AndroidAbi 和 AndroidOutputKind。
+- [x] 实现不可变 AndroidPackageOptions、AndroidAbi 和 AndroidOutputKind。
 - [ ] 重跑同一命令，预期通过。
 - [ ] 运行中文文档检查。
 
@@ -87,7 +90,7 @@
 
 - [ ] 写失败测试，覆盖 launcher/unityLibrary、wrapper、settings、build files 和路径逃逸。
 - [ ] 运行 `python -m pytest tests/package/android/test_gradle_project.py -q`，预期 `GradleProjectInspector` 不存在。
-- [ ] 实现只读结构检查和类型化结果。
+- [x] 实现只读结构检查和类型化结果。
 - [ ] 重跑同一命令，预期通过。
 - [ ] 运行中文文档检查。
 
@@ -97,7 +100,7 @@
 
 - [ ] 写失败测试，覆盖 application ID、版本、ABI、仓库白名单、离线锁和重复配置。
 - [ ] 运行 `python -m pytest tests/package/android/test_gradle_config.py -q`，预期 `GradleConfigurationPlanner` 不存在。
-- [ ] 实现结构化变换计划；不在业务层字符串插入脚本。
+- [x] 实现结构化变换计划；不在业务层字符串插入脚本。
 - [ ] 重跑同一命令，预期 plan 确定且幂等。
 - [ ] 运行中文文档检查。
 
@@ -117,7 +120,7 @@
 
 - [ ] 写失败测试，覆盖 XML namespace、package、version、权限去重、meta-data 冲突和可调试标志。
 - [ ] 运行 `python -m pytest tests/package/android/test_manifest.py -q`，预期 `AndroidManifestTransformer` 不存在。
-- [ ] 使用 XML API 实现确定性变换，不做文本替换。
+- [x] 使用 XML API 实现确定性变换，不做文本替换。
 - [ ] 重跑同一命令，预期字节/结构 Golden 通过。
 - [ ] 运行中文文档检查。
 
@@ -127,7 +130,7 @@
 
 - [ ] 写失败测试，覆盖 hook 顺序、声明输入输出、冲突检测和无 SDK 空计划。
 - [ ] 运行 `python -m pytest tests/package/test_sdk_hooks.py -q`，预期 `PackageSdkHook` 不存在。
-- [ ] 实现 Protocol 和纯计划聚合；具体 SDK 留给计划 28。
+- [x] 实现 Protocol 和纯计划聚合；具体 SDK 留给计划 28。
 - [ ] 重跑同一命令，预期通过。
 - [ ] 运行中文文档检查。
 
@@ -139,7 +142,7 @@
 
 - [ ] 写失败测试，覆盖 SecretRef、证书指纹、APK/AAB 差异、秘密传递方式、参数脱敏和禁止 SHA1/MD5。
 - [ ] 运行 `python -m pytest tests/package/android/test_signing.py -q`，预期 `AndroidSigningPlanner` 不存在。
-- [ ] 实现签名计划；只声明所需 SecretRef 和受控传递方式，不解析秘密。
+- [x] 实现签名计划；只声明所需 SecretRef 和受控传递方式，不解析秘密。
 - [ ] 重跑同一命令，预期日志不含测试 secret。
 - [ ] 运行中文文档检查。
 
@@ -201,7 +204,7 @@
 
 - [ ] 写失败测试，覆盖 PackageManifest 前置、内容键、同哈希幂等、异哈希冲突、取消和上传回执。
 - [ ] 运行 `python -m pytest tests/package/test_uploader.py -q`，预期 `PackageUploader` 不存在。
-- [ ] 实现通过 ObjectStore 的可选上传；不修改 PackageManifest，不包含商店发布逻辑。
+- [x] 实现通过 ObjectStore 的可选上传；不修改 PackageManifest，不包含商店发布逻辑。
 - [ ] 重跑同一命令，预期通过。
 - [ ] 运行中文文档检查。
 

@@ -11,7 +11,8 @@ ReleaseSnapshot、ReleaseManifest、ReleaseBundle 和激活状态机。
 
 第三阶段已实现六字段文件列表和 `assetbundledb_*.txt` 的 DTO、Writer、Parser 及合成
 Golden；资源层已实现固定输入、十二类任务契约、CAS 文件产物、显式聚合和结果包 framing。
-真实历史输出双跑、真实 Unity 任务、Redirect/分包发布编排和 CLI 尚未实现。
+真实历史输出双跑、真实 Unity/Gradle/签名工具、供应商 CDN、iOS/Windows 平台、CLI 和
+迁移验收尚未实现；发布层和 package 层的纯 Python 自动化门禁已部分完成。
 因此当前版本可用于领域模型、兼容协议和规划执行逻辑的开发验证，但还不能执行真实
 Unity 构建、上传、激活或回滚。
 
@@ -53,8 +54,8 @@ Android、iOS、Windows、IL2CPP/SDK、分支、美术辅助和端到端迁移�
 - [正式版本资源构建与发布设计](readme/release_build/00_正式版本资源构建与发布设计.md)
 
 该目录记录当前确认的十二个独立资源任务、Jenkins 外部编排、版本号、日志、
-本地 CDN 和基础发布流程。资源公共层自动化代码已开始实现，但完整发布代码和可执行命令
-仍处于规划中。
+本地 CDN 和基础发布流程。资源公共层、发布纯 Python 规划/上传/CAS 模型以及 package
+共享基础已开始实现，但完整端到端发布、真实平台构建和可执行命令仍处于规划中。
 
 ## 开发约束
 

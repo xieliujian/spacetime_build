@@ -3,7 +3,8 @@
 ## 1. 状态与目标
 
 - 文档状态：**设计完成，独立审查通过**。
-- 代码状态：**规划中，`package` 尚不存在**。
+- 代码状态：**共享 package 基础和 Android 配置自动化已开始实现**；真实 Unity/Gradle、
+  签名工具和 Android 平台验收仍为 `PENDING`。
 - 目标：从固定源码、工具链和已验证 ReleaseBundle 生成可审计 APK/AAB、符号与 PackageManifest。
 - 非目标：不在本模块构建资源、不生成旧协议、不实现具体渠道 SDK、不直接上传生产商店。
 
