@@ -13,6 +13,9 @@ dependencies = [
     "tomli-w==1.2.0",
 ]
 
+[project.scripts]
+spacetime-build = "cli.main:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest",

@@ -14,7 +14,8 @@
 ## 1. 状态、范围与旧系统边界
 
 - 文档状态：**设计与实施计划完成，独立审查通过**。
-- 代码状态：**规划中，`services` 与 `sdk` 尚不存在**。
+- 代码状态：**IL2CPP 安全归档/缓存计划/输出验证/protection plan 与 SDK descriptor/catalog/
+  hook planner 已实现；真实执行和平台 apply 仍为 PENDING**。
 - 只读参考：`services/client/client_buildil2cpp.py`、`services/server/service_buildil2cpp*.py`、
   `services/server/pvr_cache.py`、`package/il2cpp_encrypt.py`、`sdk/sdk_xml_process.py`、
   `sdk/sdk_project_post_process.py` 和 `sdk/sdk_post_process.py`。
@@ -53,6 +54,11 @@ src/sdk/
 SDK descriptor 是数据，不包含 Python 模块名、shell、Gradle 代码、Ruby 代码或任意文件覆盖指令。
 固定平台 applier 只接受白名单操作。具体渠道 descriptor 必须逐个加入 fixture、review 和验收，不能
 通过运行时扫描目录自动启用。
+
+当前已实现 IL2CPP Task 1-4、Task 7 的纯 Python 归档/计划/验证切片及 Task 8 的固定 protection
+计划；SDK Task 9-10 的不可变 descriptor、严格 TOML catalog、依赖/冲突计划和确定性 plan ID
+已实现。IL2CPP local/remote executor、SDK Android/iOS/Windows mapper、apply/validator 和
+真实节点/渠道验收仍未实现，不能宣称可构建或可保护。
 
 ## 3. IL2CPP 契约
 

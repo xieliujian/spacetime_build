@@ -14,7 +14,13 @@
 ## 1. 状态、范围与安全边界
 
 - 文档状态：**实施计划完成，独立审查通过**。
-- 代码状态：**规划中，`application` 与 `cli` 尚不存在**。
+- 代码状态：**纯 Python application/CLI 基础已实现；真实外部编排仍为 PENDING**。
+
+截至 2026-08-20，Task 1-6、Task 11 的纯 Python 契约与测试已完成；Task 7-10 已完成
+资源/发布/包体/操作的薄用例骨架和替身回归；Task 12-13 已完成脱敏输出、命令路由、
+延迟 composition root、`main(argv)` 和 `spacetime-build` console script。Task 14 的
+跨用例端到端/并发 fixture、Task 15 的真实外部探针，以及计划 18/23/25/27/28 的真实
+适配器和平台组件仍未完成，不能将 CLI 命令宣称为真实构建命令。
 - 本文是全仓唯一的跨模块运行编排归属；平台模块不得新增自己的顶层 pipeline。
 - 当前 README 不得列出任何可执行构建命令；只有对应自动化与外部验收关闭后才能标记可用。
 - 旧目录 `F:\proj_se\develop\client\tools\build` 只读；不从该目录启动 controller、Jenkins、上传、签名或 SVN 写操作。

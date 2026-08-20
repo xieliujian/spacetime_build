@@ -2,10 +2,33 @@
 
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from core.platforms import BuildPlatform
+from package.platforms.windows.model import WindowsArchitecture
 from ports.unity import UnityBatchRequest, UnityBatchResult
+
+_SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+
+
+@dataclass(frozen=True, slots=True)
+class WindowsPlayerExportOptions:
+    """描述 Windows Unity Player 的架构、development 开关和资源入口身份。"""
+
+    architecture: WindowsArchitecture
+    development: bool
+    release_bundle_id: str
+
+    def __post_init__(self) -> None:
+        """校验 Windows 导出选项不携带浮动或秘密的发布身份。"""
+        if not isinstance(self.architecture, WindowsArchitecture):
+            raise TypeError("architecture 必须是 WindowsArchitecture")
+        if not isinstance(self.development, bool):
+            raise TypeError("development 必须是 bool")
+        if _SHA256_PATTERN.fullmatch(self.release_bundle_id) is None:
+            raise ValueError("release_bundle_id 必须是 64 位小写 SHA256")
 
 
 class UnityPlayerExporter:
@@ -80,6 +103,55 @@ class UnityPlayerExporter:
             log_path,
             float(timeout_seconds),
             (output_path,),
+        )
+
+    @staticmethod
+    def plan_windows(
+        project_path: Path,
+        output_path: Path,
+        unity_executable: Path,
+        log_path: Path,
+        *,
+        unity_version: str,
+        options: WindowsPlayerExportOptions,
+        timeout_seconds: float = 3600.0,
+    ) -> UnityBatchRequest:
+        """生成带 Windows 架构和 ReleaseBundle 身份的 Player 导出请求。
+
+        参数：
+            project_path: 隔离 Unity 工程绝对路径。
+            output_path: Windows Player 预期输出绝对路径。
+            unity_executable: 固定 Unity 可执行文件绝对路径。
+            log_path: Unity 日志绝对路径。
+            unity_version: 固定 Unity 版本文本。
+            options: 已校验的 Windows Player 专属导出选项。
+            timeout_seconds: Unity 批处理超时秒数。
+
+        返回：
+            包含 Windows 平台、架构、development 和 ReleaseBundle 参数的
+            ``UnityBatchRequest``。
+
+        异常：
+            参数类型、路径、版本或选项非法时抛出 ``TypeError`` / ``ValueError``。
+
+        约束与副作用：
+            只生成参数序列，不读取资源、不启动 Unity，也不修改工程文件。
+        """
+        if not isinstance(options, WindowsPlayerExportOptions):
+            raise TypeError("options 必须是 WindowsPlayerExportOptions")
+        return UnityPlayerExporter.plan(
+            BuildPlatform.WINDOWS,
+            project_path,
+            output_path,
+            unity_executable,
+            log_path,
+            unity_version=unity_version,
+            timeout_seconds=timeout_seconds,
+            build_settings=(
+                ("--architecture", options.architecture.value),
+                ("--development", "true" if options.development else "false"),
+                ("--release-bundle-id", options.release_bundle_id),
+            ),
         )
 
     @staticmethod

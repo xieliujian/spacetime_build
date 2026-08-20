@@ -14,7 +14,8 @@
 ## 1. 状态、目标与只读参考
 
 - 文档状态：**设计与实施计划完成，独立审查通过**。
-- 代码状态：**规划中，Windows package 模块尚不存在**。
+- 代码状态：**纯 Python 模型、布局、配置、inventory、签名计划和便携归档已实现；真实 Windows
+  工具链仍为 PENDING**。
 - 只读参考：`package/build_package_win_base_build.py`、`build_package_win_default_build.py`、
   `build_package_win_cmge_build.py`、`build_package_win_zilong_build.py`、`package_utils.py` 和
   `tool/windows_sign_tool/`。
@@ -77,6 +78,10 @@ class HardwareTokenSigningOptions:
 
 unsigned 是显式测试模式，不允许 production profile 使用。payload 与 installer 使用同一 signer 配置，
 但属于两个签名阶段并分别验证。
+
+当前已实现 Task 1-8 的纯 Python 范围（Windows options、Unity export operation、布局/appconfig/
+inventory、SHA-256 分阶段签名计划和确定性 portable ZIP）。Task 9-12（固定模板安装器、签名
+执行、符号收集、PE/签名/包体验证）以及 Task 15 的真实签名、安装、启动、上传验收仍未实现。
 
 ## 3. 不变量、安全、恢复与缓存
 

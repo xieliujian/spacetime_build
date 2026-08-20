@@ -1,0 +1,25 @@
+/* 固定的 Gradle 配置入口；只接受 applier 生成的 JSON 请求文件。 */
+
+def requestPath = providers.gradleProperty("spacetimeRequest").orNull
+if (requestPath == null || requestPath.isEmpty()) {
+    throw new GradleException("spacetimeRequest is required")
+}
+
+def requestFile = file(requestPath)
+if (!requestFile.isFile()) {
+    throw new GradleException("spacetimeRequest must point to a file inside the workspace")
+}
+
+def request = new groovy.json.JsonSlurper().parse(requestFile)
+def allowedKeys = [
+    "abis",
+    "application_id",
+    "build_type",
+    "offline_lock",
+    "output_kind",
+    "repositories",
+    "version_code",
+] as Set
+if (!(request instanceof Map) || !request.keySet().every { allowedKeys.contains(it) }) {
+    throw new GradleException("unsupported Gradle configuration key")
+}

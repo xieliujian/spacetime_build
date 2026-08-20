@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ports.process import ProcessRequest, ProcessRunner
+from ports.process import CancellationToken, ProcessRequest, ProcessRunner
 from ports.unity import UnityBatchRequest, UnityBatchResult
 
 
@@ -13,7 +13,11 @@ class UnityBatchRunner:
         """保存进程端口依赖。"""
         self._process_runner = process_runner
 
-    def run(self, request: UnityBatchRequest) -> UnityBatchResult:
+    def run(
+        self,
+        request: UnityBatchRequest,
+        cancellation: CancellationToken | None = None,
+    ) -> UnityBatchResult:
         """执行 Unity 并校验退出码和声明的输出文件。"""
         if not isinstance(request, UnityBatchRequest):
             raise TypeError("request 必须是 UnityBatchRequest")
@@ -38,7 +42,7 @@ class UnityBatchRunner:
             stderr_path=stderr_path,
             timeout_seconds=request.timeout_seconds,
         )
-        result = self._process_runner.run(process_request)
+        result = self._process_runner.run(process_request, cancellation)
         missing = tuple(path for path in request.expected_outputs if not path.is_file())
         success = result.exit_code == 0 and result.outcome.value == "completed" and not missing
         return UnityBatchResult(success, result.exit_code, request.log_path, missing)

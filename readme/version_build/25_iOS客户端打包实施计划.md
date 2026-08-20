@@ -13,9 +13,13 @@
 ## 1. 状态与共同命令
 
 - 文档状态：**实施计划完成，独立审查通过**。
-- 代码状态：**规划中**。
+- 代码状态：**纯 Python 计划与工程应用切片已实现；真实 macOS/Xcode 包体仍为 PENDING**。
 - 每个“中文文档检查”步骤执行 `python -m pytest tests/quality/test_chinese_documentation.py -q`。
 - 未经用户明确要求不创建 commit。
+
+当前已实现 Task 1-5：iOS 模型、结构化 plist/provisioning 解析、Xcode project plan、固定
+Ruby 工程应用器及失败回滚测试。Task 6-12（keychain、签名、archive、IPA、dSYM、包体验证）
+以及 Task 14 的 macOS/Xcode/Unity 实机验收仍未实现；不能把 Windows 替身测试写成 iOS 可用。
 
 ## 2. 模型与配置
 

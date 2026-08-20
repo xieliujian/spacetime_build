@@ -34,12 +34,14 @@ class _FakeRunner:
         """保存 fake 结果和调用记录。"""
         self.result = result
         self.requests: list[ProcessRequest] = []
+        self.cancellations: list[CancellationToken | None] = []
 
     def run(
         self, request: ProcessRequest, cancellation: CancellationToken | None = None
     ) -> ProcessResult:
         """记录请求并返回结果。"""
         self.requests.append(request)
+        self.cancellations.append(cancellation)
         return self.result
 
 
@@ -134,6 +136,30 @@ def test_unity_runner_builds_structured_batchmode_request(tmp_path: Path) -> Non
     assert result.success
     assert runner.requests[0].arguments[:4] == ("-batchmode", "-quit", "-projectPath", str(project))
     assert "-executeMethod" in runner.requests[0].arguments
+
+
+def test_unity_runner_forwards_cancellation_token_to_process_port(tmp_path: Path) -> None:
+    """验证 Unity 适配器将取消令牌交给进程端口，而不是吞掉取消语义。"""
+    project = tmp_path / "project"
+    project.mkdir()
+    expected = tmp_path / "output.bin"
+    expected.write_bytes(b"output")
+    runner = _FakeRunner(_process_result(tmp_path))
+    cancellation = CancellationToken()
+    UnityBatchRunner(runner).run(
+        UnityBatchRequest(
+            tmp_path / "Unity.exe",
+            project,
+            "Build.Entry",
+            (),
+            tmp_path / "unity.log",
+            30,
+            (expected,),
+        ),
+        cancellation,
+    )
+
+    assert runner.cancellations == [cancellation]
 
 
 def test_jenkins_client_converts_queue_location_and_cancels_running_build() -> None:

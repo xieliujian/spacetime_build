@@ -2,7 +2,8 @@
 
 本项目用于在不修改旧构建工具的前提下，重新实现 SE 项目的 Unity 构建系统。工程采用
 Python 3.10+ 和 `src` 布局，各功能域直接作为顶级包；当前已实现 `core`、`release`、
-`compatibility` 和资源构建公共层 `resource`。
+`compatibility`、资源构建公共层 `resource`、application 编排层、CLI 纯解析层，以及部分
+客户端平台、IL2CPP、SDK 和 branch 纯 Python 计划层。
 
 当前已完成第一阶段工程骨架、第二阶段纯 Python 领域内核和第三阶段兼容协议纯 Python
 实现，包括不可变产物模型、
@@ -11,15 +12,17 @@ ReleaseSnapshot、ReleaseManifest、ReleaseBundle 和激活状态机。
 
 第三阶段已实现六字段文件列表和 `assetbundledb_*.txt` 的 DTO、Writer、Parser 及合成
 Golden；资源层已实现固定输入、十二类任务契约、CAS 文件产物、显式聚合和结果包 framing。
-真实历史输出双跑、真实 Unity/Gradle/签名工具、供应商 CDN、iOS/Windows 平台、CLI 和
-迁移验收尚未实现；发布层和 package 层的纯 Python 自动化门禁已部分完成。
-因此当前版本可用于领域模型、兼容协议和规划执行逻辑的开发验证，但还不能执行真实
-Unity 构建、上传、激活或回滚。
+真实历史输出双跑、真实 Unity/Gradle/Xcode/签名工具、供应商 CDN、完整 iOS/Windows 包体、
+IL2CPP/SDK 执行、SVN 写操作和迁移验收尚未实现；CLI/application 的纯 Python 自动化基础已
+完成，真实外部命令仍未装配。
+因此当前版本可用于领域模型、兼容协议、规划执行逻辑和替身编排验证，但还不能执行真实
+Unity 构建、上传、激活、回滚或客户端平台打包。`spacetime-build` 入口仅支持显式注入
+composition services；未配置外部适配器时会返回配置错误。
 
 阶段 3 至阶段 14 的设计与实施文档已经按模块写入 `readme/version_build/`，
 17 至 31 号文档已完成独立审查，覆盖兼容协议、外部适配器、资源、发布、CLI、
 Android、iOS、Windows、IL2CPP/SDK、分支、美术辅助和端到端迁移。
-这些文档是后续 TDD 实施依据，不表示对应代码或平台能力已经可用。
+这些文档是后续 TDD 实施依据；已实现的纯 Python 切片不表示对应真实工具或平台能力已经可用。
 
 当前验证基线为 Python 3.10.11：包含资源层的目标回归 470 项通过，排除已知进程树长时节点；
 资源层独立覆盖率为 86%，Ruff、Pyright 和 compileall 检查通过。真实迁移证据仍保持 PENDING。

@@ -6,8 +6,13 @@
 
 - 第一阶段工程骨架和第二阶段纯 Python 领域内核已经实现并通过质量门禁。
 - 第三阶段旧客户端兼容协议的纯 Python DTO、Writer、Parser 和合成 Golden 已实现，真实历史
-  双跑和旧客户端解析验收仍为 PENDING；资源构建第三层公共模型和自动化任务契约已实现，尚无
-  可执行真实 Unity 构建、发布或迁移命令。
+  双跑和旧客户端解析验收仍为 PENDING；资源构建第三层公共模型和自动化任务契约已实现；
+  application/CLI 的请求状态、TOML Profile、覆盖、preflight、CAS 记录、资源/发布/包体/操作
+  薄用例、命令树、退出码、脱敏输出和延迟入口已实现，真实 Unity、发布、平台打包或迁移命令
+  仍不可宣称可用。
+- iOS/Windows 的部分纯 Python 包体计划、IL2CPP 归档/规划/验证、SDK descriptor/catalog/规划
+  以及 branch Task 1-7 已实现并有自动化测试；IL2CPP/SDK 执行、installer/平台验证、branch
+  后续 apply、art 和真实平台验收仍为 PENDING。
 - 总体设计见 `readme/version_build/00_全新构建系统设计.md`。
 - 第一阶段计划见 `readme/version_build/12_第一阶段实施计划.md`。
 - 第二阶段记录见 `readme/version_build/13_第二阶段领域模型与DAG实施计划.md`。
@@ -26,8 +31,9 @@
 
 - 最低版本：Python 3.10。
 - 各功能域直接作为顶级导入包，不增加工程名或构建系统名包裹层。
-- 源码采用 `src/<domain>/` 布局，当前已实现 `src/core/`、`src/release/`、`src/compatibility/`
-  和 `src/resource/`。
+- 源码采用 `src/<domain>/` 布局，当前已实现 `src/core/`、`src/release/`、`src/compatibility/`、
+  `src/resource/`、`src/application/`、`src/cli/`、部分 `src/package/platforms/`、`src/services/il2cpp/`、
+  `src/sdk/` 和 `src/branch/`。
 - 核心领域层不得依赖 SVN、Unity、Jenkins 或具体 CDN 实现。
 - 外部系统通过 Protocol 和适配器接入。
 - 构建产物模型与发布模型必须分离。
