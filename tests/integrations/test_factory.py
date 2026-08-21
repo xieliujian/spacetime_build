@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+
 from configuration.model import SecretRef
 from integrations.factory import IntegrationFactory
 from integrations.storage import HttpObjectStore
+from integrations.svn import SvnSourceProvider
 from ports.http import HttpRequest, HttpResponse
 from ports.process import ProcessRequest, ProcessResult
 
@@ -53,3 +58,29 @@ def test_remote_factory_forwards_credential_without_resolving_it() -> None:
 
     assert isinstance(factory.object_store, HttpObjectStore)
     assert "CDN_TOKEN" not in repr(factory)
+
+
+def test_local_factory_explicitly_binds_svn_source_credential(tmp_path: Path) -> None:
+    """验证本地组合根显式装配 SVN 读取端口并只转发秘密引用。"""
+    credential = SecretRef("secret://env/SVN_PASSWORD")
+
+    factory = IntegrationFactory.local(
+        _ProcessRunner(),
+        tmp_path / "objects",
+        source_executable=tmp_path / "svn.exe",
+        source_temp_root=tmp_path / "svn-commands",
+        source_credential=credential,
+    )
+
+    assert isinstance(factory.source_provider, SvnSourceProvider)
+    assert "SVN_PASSWORD" not in repr(factory)
+
+
+def test_local_factory_rejects_partial_svn_configuration(tmp_path: Path) -> None:
+    """验证组合根不接受不完整的 SVN 可执行文件和临时根配置。"""
+    with pytest.raises(ValueError, match="必须同时提供"):
+        IntegrationFactory.local(
+            _ProcessRunner(),
+            tmp_path / "objects",
+            source_executable=tmp_path / "svn.exe",
+        )

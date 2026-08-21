@@ -11,32 +11,90 @@ import re
 from typing import cast
 from urllib.parse import quote, urlencode
 
+from configuration.model import SecretRef
 from core.errors import ToolExecutionError
+from integrations.secrets import SecretLeaseGuard
 from ports.ci import CiJobClient, CiJobHandle, CiJobRequest, CiJobState, CiJobStatus
-from ports.http import HttpMethod, HttpRequest, HttpResponse, HttpTransport
+from ports.http import (
+    HttpMethod,
+    HttpRequest,
+    HttpResponse,
+    HttpTransport,
+    SecretHttpBinding,
+    SecretHttpTarget,
+)
+from ports.secrets import SecretLeaseRequest, SecretProvider
 
 
 class JenkinsJobClient(CiJobClient):
     """通过注入的 HTTP 端口访问 Jenkins REST API。"""
 
-    def __init__(self, base_url: str, transport: HttpTransport) -> None:
-        """校验 Jenkins 根 URL 并保存传输依赖。"""
+    def __init__(
+        self,
+        base_url: str,
+        transport: HttpTransport,
+        *,
+        credential: SecretRef | None = None,
+        secret_provider: SecretProvider | None = None,
+    ) -> None:
+        """校验 Jenkins 根 URL 并保存可选的短期凭据依赖。"""
         if not isinstance(base_url, str) or not base_url.startswith(("http://", "https://")):
             raise ValueError("base_url 必须是 http(s) URL")
+        if credential is not None and not isinstance(credential, SecretRef):
+            raise TypeError("credential 必须是 SecretRef 或 None")
+        if credential is None and secret_provider is not None:
+            raise ValueError("未提供 credential 时不得绑定 secret_provider")
+        if credential is not None and not callable(getattr(secret_provider, "acquire", None)):
+            raise ValueError("使用 credential 时必须提供 SecretProvider")
         self._base_url = base_url.rstrip("/")
         self._transport = transport
-
-    def _send(self, method: HttpMethod, path: str, body: bytes = b"") -> HttpResponse:
-        """发送 Jenkins API 请求并返回响应。"""
-        response = self._transport.send(
-            HttpRequest(
-                method,
-                self._base_url + path,
-                headers=(("Content-Type", "application/x-www-form-urlencoded"),),
-                body=body,
-            )
+        self._credential = credential
+        self._secret_provider = secret_provider
+        self._authorization_binding = SecretHttpBinding(
+            "jenkins-authorization",
+            SecretHttpTarget.AUTHORIZATION,
+            "Authorization",
         )
-        if response.status_code >= 400:
+
+    def _send(
+        self,
+        method: HttpMethod,
+        path: str,
+        body: bytes = b"",
+        *,
+        check_status: bool = True,
+    ) -> HttpResponse:
+        """在单次 HTTP 请求边界申请并释放 Jenkins 凭据租约。"""
+        lease: SecretLeaseGuard | None = None
+        bindings: tuple[SecretHttpBinding, ...] = ()
+        if self._credential is not None:
+            provider = self._secret_provider
+            if provider is None:
+                raise RuntimeError("Jenkins 凭据 provider 未装配")
+            raw_lease = provider.acquire(
+                SecretLeaseRequest(
+                    self._credential,
+                    "jenkins-http",
+                    (self._authorization_binding.binding_id,),
+                )
+            )
+            lease = SecretLeaseGuard(raw_lease)
+            bindings = (self._authorization_binding,)
+        try:
+            response = self._transport.send(
+                HttpRequest(
+                    method,
+                    self._base_url + path,
+                    headers=(("Content-Type", "application/x-www-form-urlencoded"),),
+                    body=body,
+                    secret_bindings=bindings,
+                    secret_lease=lease,
+                )
+            )
+        finally:
+            if lease is not None:
+                lease.close()
+        if check_status and response.status_code >= 400:
             raise ToolExecutionError(f"Jenkins HTTP 请求失败: {response.status_code}")
         return response
 
@@ -95,7 +153,7 @@ class JenkinsJobClient(CiJobClient):
         else:
             job = quote(handle.job_name, safe="")
             path = f"/job/{job}/{handle.build_id}/stop"
-        response = self._transport.send(HttpRequest(HttpMethod.POST, self._base_url + path))
+        response = self._send(HttpMethod.POST, path, check_status=False)
         if response.status_code == 404:
             return False
         if response.status_code >= 400:

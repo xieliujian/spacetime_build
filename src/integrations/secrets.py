@@ -13,6 +13,39 @@ import threading
 from ports.secrets import SecretLease, SecretLeaseRequest, SecretProvider
 
 
+class SecretLeaseGuard(SecretLease):
+    """为 HTTP transport 提供幂等关闭的短期秘密租约包装。"""
+
+    def __init__(self, lease: SecretLease) -> None:
+        """保存底层租约并校验其最小协议。"""
+        if not callable(getattr(lease, "resolve", None)) or not callable(
+            getattr(lease, "close", None)
+        ):
+            raise TypeError("lease 必须提供 resolve 和 close 方法")
+        self._lease = lease
+        self._closed = False
+        self._lock = threading.Lock()
+
+    def resolve(self, binding_id: str) -> str:
+        """在租约未关闭时委托 opaque binding 解析。"""
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("秘密租约已关闭")
+        return self._lease.resolve(binding_id)
+
+    def close(self) -> None:
+        """保证底层租约只关闭一次。"""
+        with self._lock:
+            if self._closed:
+                return
+            self._closed = True
+        self._lease.close()
+
+    def __repr__(self) -> str:
+        """返回不包含秘密内容的固定表示。"""
+        return "SecretLeaseGuard(<redacted>)"
+
+
 class _EnvironmentSecretLease(SecretLease):
     """保存一组短期环境凭据的不可打印租约。"""
 

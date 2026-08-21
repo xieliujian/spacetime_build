@@ -24,7 +24,7 @@ from ports.http import (
     SecretHttpBinding,
     SecretHttpTarget,
 )
-from ports.secrets import SecretLease, SecretLeaseRequest, SecretProvider
+from ports.secrets import SecretLeaseRequest, SecretProvider
 from ports.storage import (
     CompareAndSwapRequest,
     CompareAndSwapResult,
@@ -35,39 +35,7 @@ from ports.storage import (
     validate_object_key,
 )
 from configuration.model import SecretRef
-
-
-class _LeaseGuard(SecretLease):
-    """让对象适配器和 HTTP transport 共享幂等租约关闭所有权。"""
-
-    def __init__(self, lease: SecretLease) -> None:
-        """保存底层租约并初始化关闭锁。"""
-        if not callable(getattr(lease, "resolve", None)) or not callable(
-            getattr(lease, "close", None)
-        ):
-            raise TypeError("lease 必须提供 resolve 和 close 方法")
-        self._lease = lease
-        self._closed = False
-        self._lock = threading.Lock()
-
-    def resolve(self, binding_id: str) -> str:
-        """在未关闭期间委托 opaque binding 解析。"""
-        with self._lock:
-            if self._closed:
-                raise RuntimeError("秘密租约已关闭")
-        return self._lease.resolve(binding_id)
-
-    def close(self) -> None:
-        """只向底层租约发送一次关闭请求。"""
-        with self._lock:
-            if self._closed:
-                return
-            self._closed = True
-        self._lease.close()
-
-    def __repr__(self) -> str:
-        """返回不包含租约内容的固定表示。"""
-        return "SecretLeaseGuard(<redacted>)"
+from integrations.secrets import SecretLeaseGuard
 
 
 class HttpObjectStore(ObjectStore):
@@ -190,7 +158,7 @@ class HttpObjectStore(ObjectStore):
         headers: tuple[tuple[str, str], ...] = (),
     ) -> HttpResponse:
         """构造单次对象请求并委托已有 HTTP transport。"""
-        lease: _LeaseGuard | None = None
+        lease: SecretLeaseGuard | None = None
         bindings: tuple[SecretHttpBinding, ...] = ()
         if self._credential is not None:
             provider = self._secret_provider
@@ -203,7 +171,7 @@ class HttpObjectStore(ObjectStore):
                     (self._authorization_binding.binding_id,),
                 )
             )
-            lease = _LeaseGuard(raw_lease)
+            lease = SecretLeaseGuard(raw_lease)
             bindings = (self._authorization_binding,)
         try:
             return self._transport.send(

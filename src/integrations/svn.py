@@ -2,7 +2,7 @@
 
 适配器只执行受控的 ``info`` 和 ``export`` 参数序列，并把 XML 解析为结构化源码身份。
 它不执行 commit、copy 或 relocate；这些写操作属于后续分支构建能力，不能从普通资源任务
-隐式触发。
+隐式触发。SVN 密码只通过进程端口的短期 opaque binding 传递。
 """
 
 from __future__ import annotations
@@ -12,21 +12,46 @@ import tempfile
 import xml.etree.ElementTree as ElementTree
 from pathlib import Path
 
+from configuration.model import SecretRef
 from core.errors import SourceError
-from ports.process import ProcessOutcome, ProcessRequest, ProcessRunner
+from integrations.secrets import SecretLeaseGuard
+from ports.process import (
+    ProcessOutcome,
+    ProcessRequest,
+    ProcessRunner,
+    SecretBindingTarget,
+    SecretProcessBinding,
+)
+from ports.secrets import SecretLeaseRequest, SecretProvider
 from ports.source import ResolvedSource, SourceProvider, SourceRef, SourceSnapshot
 
 
 class SvnSourceProvider(SourceProvider):
     """通过注入的 ProcessRunner 解析和物化 SVN revision。"""
 
-    def __init__(self, executable: Path, temp_root: Path, process_runner: ProcessRunner) -> None:
-        """保存绝对 SVN 可执行文件、临时根目录和进程端口。"""
+    def __init__(
+        self,
+        executable: Path,
+        temp_root: Path,
+        process_runner: ProcessRunner,
+        *,
+        credential: SecretRef | None = None,
+        secret_provider: SecretProvider | None = None,
+    ) -> None:
+        """保存 SVN 工具、临时根目录和可选的短期密码依赖。"""
         if not executable.is_absolute() or not temp_root.is_absolute():
             raise ValueError("executable 和 temp_root 必须是绝对路径")
+        if credential is not None and not isinstance(credential, SecretRef):
+            raise TypeError("credential 必须是 SecretRef 或 None")
+        if credential is None and secret_provider is not None:
+            raise ValueError("未提供 credential 时不得绑定 secret_provider")
+        if credential is not None and not callable(getattr(secret_provider, "acquire", None)):
+            raise ValueError("使用 credential 时必须提供 SecretProvider")
         self._executable = executable
         self._temp_root = temp_root
         self._process_runner = process_runner
+        self._credential = credential
+        self._secret_provider = secret_provider
 
     def resolve_revision(self, source: SourceRef) -> ResolvedSource:
         """使用 svn info XML 将 HEAD 固定为仓库 revision。"""
@@ -85,15 +110,48 @@ class SvnSourceProvider(SourceProvider):
         self._temp_root.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=self._temp_root) as directory:
             root = Path(directory)
-            request = ProcessRequest(
-                self._executable,
-                arguments,
-                root,
-                root / "stdout.log",
-                root / "stderr.log",
-                timeout_seconds=300,
-            )
-            result = self._process_runner.run(request)
-            if result.outcome is not ProcessOutcome.COMPLETED or result.exit_code != 0:
-                raise SourceError("SVN 命令执行失败")
-            return request.stdout_path.read_bytes()
+            lease: SecretLeaseGuard | None = None
+            try:
+                request_arguments = arguments
+                bindings: tuple[SecretProcessBinding, ...] = ()
+                redacted_indexes = frozenset[int]()
+                if self._credential is not None:
+                    provider = self._secret_provider
+                    if provider is None:
+                        raise RuntimeError("SVN 凭据 provider 未装配")
+                    raw_lease = provider.acquire(
+                        SecretLeaseRequest(
+                            self._credential,
+                            "svn-command",
+                            ("svn-password",),
+                        )
+                    )
+                    lease = SecretLeaseGuard(raw_lease)
+                    password_index = len(arguments) + 1
+                    request_arguments = (*arguments, "--password", "")
+                    bindings = (
+                        SecretProcessBinding(
+                            "svn-password",
+                            SecretBindingTarget.ARGUMENT,
+                            str(password_index),
+                        ),
+                    )
+                    redacted_indexes = frozenset({password_index})
+                request = ProcessRequest(
+                    self._executable,
+                    request_arguments,
+                    root,
+                    root / "stdout.log",
+                    root / "stderr.log",
+                    timeout_seconds=300,
+                    redacted_argument_indexes=redacted_indexes,
+                    secret_bindings=bindings,
+                    secret_lease=lease,
+                )
+                result = self._process_runner.run(request)
+                if result.outcome is not ProcessOutcome.COMPLETED or result.exit_code != 0:
+                    raise SourceError("SVN 命令执行失败")
+                return request.stdout_path.read_bytes()
+            finally:
+                if lease is not None:
+                    lease.close()
