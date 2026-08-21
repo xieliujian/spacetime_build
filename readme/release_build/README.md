@@ -28,11 +28,12 @@
 - 第三层资源公共模型：唯一 `BuildPlatform`、固定资源输入、十二类资源任务身份、精确输出
   发现、类型化 Unity 操作、内容寻址 Blob 提交、单任务执行服务、显式 BuildManifest 聚合，
   以及跨节点 `TaskResultPackage` 的确定性 TOML/framing 校验；`config` 额外提供类型化
-  Schema 转换端口，绑定同一快照生成读取代码、BIN 和可选 TXT。
+  Schema 转换端口，绑定同一快照生成读取代码、BIN 和可选 TXT；`lua` 额外提供 source、
+  bytecode、encrypted 三种模式的类型化转换端口和秘密引用边界。
 
 当前仍没有面向正式版本的 Unity 资源打包命令、版本生成、上传或正式发布命令。除显式注入
-转换器的 `config` 外，十二个任务当前提供的是固定输入目录到 CAS 的自动化契约实现；这两种
-模式都不等于真实 Unity 产物已验收。真实 SVN、Unity、Jenkins、Secrets 和供应商 CDN 尚未
+转换器的 `config` 和 `lua` 外，十二个任务当前提供的是固定输入目录到 CAS 的自动化契约
+实现；转换器模式也不等于真实工具产物已验收。真实 SVN、Unity、Lua 编译/加密器、Jenkins、Secrets 和供应商 CDN 尚未
 验收。Redirect、分包、低清、发布编排和 CLI 仍属于后续层。第三阶段兼容协议的纯 Python
 DTO、Writer、Parser 和合成 Golden 已完成，但
 真实历史输出双跑与旧客户端 Parser 验收仍保持 PENDING。自动化替身与本机 Python fixture
