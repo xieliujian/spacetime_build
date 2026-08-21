@@ -29,7 +29,8 @@
   发现、类型化 Unity 操作、内容寻址 Blob 提交、单任务执行服务、显式 BuildManifest 聚合，
   以及跨节点 `TaskResultPackage` 的确定性 TOML/framing 校验；`config` 额外提供类型化
   Schema 转换端口，绑定同一快照生成读取代码、BIN 和可选 TXT；`lua` 额外提供 source、
-  bytecode、encrypted 三种模式的类型化转换端口和秘密引用边界。
+  bytecode、encrypted 三种模式的类型化转换端口和秘密引用边界；`shader_variant` 额外
+  提供 `collect_variant` 的 Shader 工程操作、假 Unity builder 和精确输出契约。
 
 当前仍没有面向正式版本的 Unity 资源打包命令、版本生成、上传或正式发布命令。除显式注入
 转换器的 `config` 和 `lua` 外，十二个任务当前提供的是固定输入目录到 CAS 的自动化契约

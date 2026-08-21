@@ -17,6 +17,7 @@ _SAFE_SEGMENT = re.compile(r"^[^/\\.][^/\\]*$")
 _OPERATION_FLAGS = {
     "build_config": "-BUILD_CONFIG",
     "build_shader_variant": "-BUILD_SHADER",
+    "collect_variant": "-BUILD_SHADER",
     "build_shader_bundle": "-BUILD_SHADER",
     "build_scene": "-BUILD_SCENE",
     "build_map": "-BUILD_MAP",

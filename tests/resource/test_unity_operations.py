@@ -27,6 +27,22 @@ def test_unity_operation_is_deterministic_and_maps_legacy_flag() -> None:
     )
 
 
+def test_collect_variant_operation_uses_shader_project_and_legacy_shader_flag() -> None:
+    """验证 CollectVariant 使用 Shader 工程并映射到旧 shader flag。"""
+    operation = UnityOperation(
+        name="collect_variant",
+        project_role=UnityProjectRole.SHADER,
+        arguments=(("platform", "windows"),),
+        expected_output_roots=("shader_variant",),
+    )
+
+    assert LegacyUnityFlagMapper.arguments_for(operation) == (
+        "-BUILD_SHADER",
+        "-platform",
+        "windows",
+    )
+
+
 def test_unity_operation_rejects_duplicate_arguments_and_unsafe_roots() -> None:
     """验证重复参数与越界输出根在构造期失败。"""
     with pytest.raises(ValueError):
