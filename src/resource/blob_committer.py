@@ -144,3 +144,28 @@ class BlobCommitter:
         if self._fingerprint(resolved)[0] != size:
             raise ArtifactValidationError(f"文件在提交期间发生变化: {resolved}")
         return BlobRef(key, digest, size)
+
+    def commit_bytes(self, content: bytes) -> BlobRef:
+        """提交已经由受控转换器生成的稳定字节并返回内容寻址引用。
+
+        参数：
+            content: 转换器输出的完整字节；调用方不得传入可变缓冲区或文本值。
+
+        返回：
+            指向 ``blobs/<sha256>`` 的 ``BlobRef``，不包含任何本地工作区路径。
+
+        异常：
+            内容类型非法，或对象存储返回与请求不一致的回执时抛出
+            ``TypeError`` / ``ArtifactValidationError``。
+
+        约束与副作用：
+            只计算内存内容摘要并通过 ``ObjectStore.put`` 写入不可变对象，不创建临时文件。
+        """
+        if not isinstance(content, bytes):
+            raise TypeError("content 必须是 bytes")
+        digest = hashlib.sha256(content).hexdigest()
+        key = f"blobs/{digest}"
+        stored = self._object_store.put(PutObjectRequest(key, content, digest))
+        if stored.key != key or stored.sha256 != digest or stored.size != len(content):
+            raise ArtifactValidationError("对象存储返回的 Blob 引用与内容不一致")
+        return BlobRef(key, digest, len(content))
