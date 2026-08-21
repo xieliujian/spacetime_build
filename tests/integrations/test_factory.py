@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from configuration.model import SecretRef
 from integrations.factory import IntegrationFactory
 from integrations.storage import HttpObjectStore
 from ports.http import HttpRequest, HttpResponse
@@ -36,3 +37,19 @@ def test_remote_factory_explicitly_binds_http_object_store() -> None:
 
     assert factory.http_transport is transport
     assert isinstance(factory.object_store, HttpObjectStore)
+
+
+def test_remote_factory_forwards_credential_without_resolving_it() -> None:
+    """验证远端组合根只转发 SecretRef，不在装配阶段读取秘密。"""
+    transport = _Transport()
+    credential = SecretRef("secret://env/CDN_TOKEN")
+
+    factory = IntegrationFactory.remote(
+        _ProcessRunner(),
+        "https://cdn.example/objects",
+        http_transport=transport,
+        credential=credential,
+    )
+
+    assert isinstance(factory.object_store, HttpObjectStore)
+    assert "CDN_TOKEN" not in repr(factory)

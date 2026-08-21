@@ -8,7 +8,9 @@ import pytest
 
 from core.errors import ToolExecutionError
 from integrations.storage import HttpObjectStore
-from ports.http import HttpRequest, HttpResponse
+from configuration.model import SecretRef
+from ports.http import HttpRequest, HttpResponse, SecretHttpTarget
+from ports.secrets import SecretLease, SecretLeaseRequest
 from ports.storage import CompareAndSwapRequest, PutObjectRequest, StoredObject
 
 
@@ -26,6 +28,43 @@ class _FakeTransport:
         if not self._responses:
             raise AssertionError("fake HTTP 响应队列为空")
         return self._responses.pop(0)
+
+
+class _Lease(SecretLease):
+    """记录 opaque binding 解析和租约关闭次数的测试租约。"""
+
+    def __init__(self, value: str) -> None:
+        """保存仅供 fake transport 解析的秘密值。"""
+        self.value = value
+        self.resolve_calls: list[str] = []
+        self.close_calls = 0
+
+    def resolve(self, binding_id: str) -> str:
+        """按 binding ID 返回测试秘密并记录访问。"""
+        self.resolve_calls.append(binding_id)
+        return self.value
+
+    def close(self) -> None:
+        """记录一次租约关闭。"""
+        self.close_calls += 1
+
+    def __repr__(self) -> str:
+        """返回不包含测试秘密的表示。"""
+        return "Lease(<redacted>)"
+
+
+class _SecretProvider:
+    """为每次对象操作创建独立短期租约。"""
+
+    def __init__(self, lease: _Lease) -> None:
+        """保存待返回的测试租约。"""
+        self.lease = lease
+        self.requests: list[SecretLeaseRequest] = []
+
+    def acquire(self, request: SecretLeaseRequest) -> SecretLease:
+        """记录租约申请并返回测试租约。"""
+        self.requests.append(request)
+        return self.lease
 
 
 def _digest(content: bytes) -> str:
@@ -52,6 +91,67 @@ def test_http_object_store_put_escapes_key_and_checks_response() -> None:
     assert stored.key == "release/file name.bin"
     assert stored.sha256 == digest
     assert stored.size == len(content)
+
+
+def test_http_object_store_binds_authorization_with_short_lived_opaque_lease() -> None:
+    """验证对象请求只携带 binding ID，且每次操作结束后关闭租约。"""
+    content = b"payload"
+    lease = _Lease("Bearer secret-value")
+    provider = _SecretProvider(lease)
+
+    class Transport(_FakeTransport):
+        """解析授权 binding 以模拟真实 HTTP transport。"""
+
+        def send(self, request: HttpRequest) -> HttpResponse:
+            """确认 transport 才能在发送边界解析秘密。"""
+            assert len(request.secret_bindings) == 1
+            binding = request.secret_bindings[0]
+            assert binding.target is SecretHttpTarget.AUTHORIZATION
+            assert binding.slot == "Authorization"
+            assert request.secret_lease is not None
+            assert request.secret_lease.resolve(binding.binding_id) == "Bearer secret-value"
+            return super().send(request)
+
+    transport = Transport([HttpResponse(201, (), b"")])
+    store = HttpObjectStore(
+        "https://cdn.example",
+        transport,
+        credential=SecretRef("secret://env/CDN_TOKEN"),
+        secret_provider=provider,
+    )
+
+    store.put(PutObjectRequest("release/file.bin", content, _digest(content)))
+
+    assert len(provider.requests) == 1
+    assert provider.requests[0].binding_ids == ("object-store-authorization",)
+    assert lease.resolve_calls == ["object-store-authorization"]
+    assert lease.close_calls == 1
+    assert "secret-value" not in repr(transport.requests[0])
+
+
+def test_http_object_store_closes_lease_when_transport_fails() -> None:
+    """验证 HTTP transport 异常时也会关闭已经获取的秘密租约。"""
+    lease = _Lease("secret-value")
+    provider = _SecretProvider(lease)
+
+    class FailingTransport:
+        """在发送边界注入网络失败的 transport。"""
+
+        def send(self, request: HttpRequest) -> HttpResponse:
+            """抛出不含秘密的传输异常。"""
+            raise ConnectionError("network unavailable")
+
+    store = HttpObjectStore(
+        "https://cdn.example",
+        FailingTransport(),
+        credential=SecretRef("secret://env/CDN_TOKEN"),
+        secret_provider=provider,
+    )
+
+    with pytest.raises(ConnectionError):
+        store.put(PutObjectRequest("release/file.bin", b"payload", _digest(b"payload")))
+
+    assert lease.close_calls == 1
 
 
 def test_http_object_store_verify_maps_not_found_and_validates_head_headers() -> None:

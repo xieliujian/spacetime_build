@@ -19,6 +19,7 @@ from ports.process import ProcessRunner
 from ports.secrets import SecretProvider
 from ports.storage import ObjectStore
 from ports.workspace import WorkspaceProvider
+from configuration.model import SecretRef
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +56,7 @@ class IntegrationFactory:
         *,
         http_transport: HttpTransport | None = None,
         secret_root: Path | None = None,
+        credential: SecretRef | None = None,
     ) -> "IntegrationFactory":
         """显式创建 HTTP 对象存储组合，不在默认 CLI 中自动启用。"""
         secret_provider: SecretProvider = EnvironmentSecretProvider()
@@ -66,5 +68,10 @@ class IntegrationFactory:
             http_transport=active_transport,
             workspace_provider=LocalWorkspaceProvider(),
             secret_provider=secret_provider,
-            object_store=HttpObjectStore(object_base_url, active_transport),
+            object_store=HttpObjectStore(
+                object_base_url,
+                active_transport,
+                credential=credential,
+                secret_provider=secret_provider if credential is not None else None,
+            ),
         )

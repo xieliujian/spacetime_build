@@ -16,7 +16,15 @@ from pathlib import Path
 from urllib.parse import quote, urlsplit
 
 from core.errors import ToolExecutionError
-from ports.http import HttpMethod, HttpRequest, HttpResponse, HttpTransport
+from ports.http import (
+    HttpMethod,
+    HttpRequest,
+    HttpResponse,
+    HttpTransport,
+    SecretHttpBinding,
+    SecretHttpTarget,
+)
+from ports.secrets import SecretLease, SecretLeaseRequest, SecretProvider
 from ports.storage import (
     CompareAndSwapRequest,
     CompareAndSwapResult,
@@ -26,6 +34,40 @@ from ports.storage import (
     StoredObject,
     validate_object_key,
 )
+from configuration.model import SecretRef
+
+
+class _LeaseGuard(SecretLease):
+    """让对象适配器和 HTTP transport 共享幂等租约关闭所有权。"""
+
+    def __init__(self, lease: SecretLease) -> None:
+        """保存底层租约并初始化关闭锁。"""
+        if not callable(getattr(lease, "resolve", None)) or not callable(
+            getattr(lease, "close", None)
+        ):
+            raise TypeError("lease 必须提供 resolve 和 close 方法")
+        self._lease = lease
+        self._closed = False
+        self._lock = threading.Lock()
+
+    def resolve(self, binding_id: str) -> str:
+        """在未关闭期间委托 opaque binding 解析。"""
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("秘密租约已关闭")
+        return self._lease.resolve(binding_id)
+
+    def close(self) -> None:
+        """只向底层租约发送一次关闭请求。"""
+        with self._lock:
+            if self._closed:
+                return
+            self._closed = True
+        self._lease.close()
+
+    def __repr__(self) -> str:
+        """返回不包含租约内容的固定表示。"""
+        return "SecretLeaseGuard(<redacted>)"
 
 
 class HttpObjectStore(ObjectStore):
@@ -38,8 +80,10 @@ class HttpObjectStore(ObjectStore):
         *,
         timeout_seconds: float = 30.0,
         max_response_bytes: int = 4096,
+        credential: SecretRef | None = None,
+        secret_provider: SecretProvider | None = None,
     ) -> None:
-        """创建 HTTP 对象存储适配器，不在构造阶段发起网络请求。"""
+        """创建 HTTP 对象存储适配器，不在构造阶段解析凭据或发起网络请求。"""
         if not isinstance(base_url, str) or not base_url:
             raise ValueError("base_url 必须是非空字符串")
         try:
@@ -57,10 +101,23 @@ class HttpObjectStore(ObjectStore):
             raise ValueError("base_url 必须是无用户信息、查询和片段的 HTTP URL")
         if not callable(getattr(transport, "send", None)):
             raise TypeError("transport 必须提供 send 方法")
+        if credential is not None and not isinstance(credential, SecretRef):
+            raise TypeError("credential 必须是 SecretRef 或 None")
+        if credential is None and secret_provider is not None:
+            raise ValueError("未提供 credential 时不得绑定 secret_provider")
+        if credential is not None and not callable(getattr(secret_provider, "acquire", None)):
+            raise ValueError("使用 credential 时必须提供 SecretProvider")
         self._base_url = base_url.rstrip("/")
         self._transport = transport
         self._timeout_seconds = timeout_seconds
         self._max_response_bytes = max_response_bytes
+        self._credential = credential
+        self._secret_provider = secret_provider
+        self._authorization_binding = SecretHttpBinding(
+            "object-store-authorization",
+            SecretHttpTarget.AUTHORIZATION,
+            "Authorization",
+        )
         HttpRequest(
             HttpMethod.HEAD,
             self._base_url,
@@ -133,16 +190,37 @@ class HttpObjectStore(ObjectStore):
         headers: tuple[tuple[str, str], ...] = (),
     ) -> HttpResponse:
         """构造单次对象请求并委托已有 HTTP transport。"""
-        return self._transport.send(
-            HttpRequest(
-                method,
-                self._url(key),
-                headers=headers,
-                body=body,
-                timeout_seconds=self._timeout_seconds,
-                max_response_bytes=self._max_response_bytes,
+        lease: _LeaseGuard | None = None
+        bindings: tuple[SecretHttpBinding, ...] = ()
+        if self._credential is not None:
+            provider = self._secret_provider
+            if provider is None:
+                raise RuntimeError("对象存储凭据 provider 未装配")
+            raw_lease = provider.acquire(
+                SecretLeaseRequest(
+                    self._credential,
+                    "object-store-http",
+                    (self._authorization_binding.binding_id,),
+                )
             )
-        )
+            lease = _LeaseGuard(raw_lease)
+            bindings = (self._authorization_binding,)
+        try:
+            return self._transport.send(
+                HttpRequest(
+                    method,
+                    self._url(key),
+                    headers=headers,
+                    body=body,
+                    timeout_seconds=self._timeout_seconds,
+                    max_response_bytes=self._max_response_bytes,
+                    secret_bindings=bindings,
+                    secret_lease=lease,
+                )
+            )
+        finally:
+            if lease is not None:
+                lease.close()
 
     def _url(self, key: str) -> str:
         """把相对对象键逐段编码为稳定 HTTP URL。"""
