@@ -988,6 +988,41 @@ def test_windows_termination_reports_missing_tool_root_and_nonzero_exit(
     assert nonzero is not None and "5" in nonzero
 
 
+def test_windows_termination_accepts_taskkill_race_after_parent_exit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """验证 taskkill 与父进程退出竞态不会把已完成终止误报为失败。"""
+
+    class Process:
+        """模拟 taskkill 返回非零但目标父进程已经退出的竞态。"""
+
+        pid = 42
+
+        def wait(self, timeout: float | None = None) -> int:
+            """模拟父进程已完成回收。"""
+            return 0
+
+        def poll(self) -> int | None:
+            """返回已退出状态，证明非零 taskkill 是并发竞态。"""
+            return 0
+
+    class Completed:
+        """模拟 taskkill 在目标刚退出时返回非零。"""
+
+        returncode = 128
+
+    def fake_run(*args: object, **kwargs: object) -> Completed:
+        """返回受控的竞态退出码。"""
+        return Completed()
+
+    with monkeypatch.context() as context:
+        context.setenv("SystemRoot", "C:/Windows")
+        context.setattr(process_module.subprocess, "run", fake_run)
+        result = _runner()._terminate_tree(Process())  # type: ignore[arg-type]
+
+    assert result is None
+
+
 def test_reader_close_and_partial_rollback_failures_return_safe_diagnostics(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -937,6 +937,19 @@ class LocalProcessRunner(ProcessRunner):
                     check=False,
                 )
                 if completed.returncode != 0:
+                    if process.poll() is not None:
+                        return None
+                    try:
+                        process.wait(timeout=self._termination_grace_seconds)
+                    except subprocess.TimeoutExpired:
+                        return f"taskkill.exe 退出码为 {completed.returncode}"
+                    except BaseException as exc:
+                        return _combine_diagnostics(
+                            "taskkill.exe 非零后回收父进程失败",
+                            _safe_error_text(exc),
+                        )
+                    if process.poll() is not None:
+                        return None
                     return f"taskkill.exe 退出码为 {completed.returncode}"
                 process.wait(timeout=self._termination_grace_seconds)
                 if process.poll() is None:
