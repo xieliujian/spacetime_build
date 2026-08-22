@@ -14,6 +14,7 @@
 - [正式版本资源构建与发布设计](00_正式版本资源构建与发布设计.md)
 - [第一层基础设施实施计划与完成记录](01_第一层基础设施实施计划.md)
 - [第二层外部集成适配器实施记录](02_第二层外部集成适配器实施计划.md)
+- [正式版本与迁移验收实施记录](03_正式版本与迁移验收实施记录.md)
 
 ## 当前实现状态
 
@@ -34,15 +35,20 @@
   提供显式 variant 输入摘要、`build_shader_bundle` Shader 工程操作、假 Unity builder、
   `depend/shader_*` 输出所有权和完整校验后 CAS 提交；`scene` 提供显式 Shader Bundle 输入
   摘要、`build_scene` 资源工程操作、假 Unity builder、`scene/` 输出所有权和 Unity Manifest
-  依赖保序校验。
+  依赖保序校验；`map`、`character`、`texture`、`ui`、`particle`、`audio`、`video` 已统一
+  接入 `UnityAssetResourceTask`，各自声明输入来源、操作名、设置和输出前缀，并可由
+  `UnityBatchAssetBuilder` 调用真实 Unity batchmode。
 
-当前仍没有面向正式版本的 Unity 资源打包命令、版本生成、上传或正式发布命令。除显式注入
-转换器或 builder 的 `config`、`lua`、`shader_variant`、`shader_bundle` 和 `scene` 外，其余资源任务
-当前提供的是固定输入目录到 CAS 的自动化契约实现；这些端口模式也不等于真实工具产物已验收。
-`shader_bundle` 还要求调用方显式传入已登记的 `shader_variant` 产物，`scene` 要求显式传入已
-登记的 `shader_bundle` 产物；这些输入都进入任务摘要，任务计划不把它们伪装成
-`TaskSpec.dependencies`。真实 SVN、Unity、Lua 编译/加密器、Jenkins、Secrets 和供应商 CDN 尚未
-验收。Redirect、分包、低清、发布编排和 CLI 仍属于后续层。第三阶段兼容协议的纯 Python
-DTO、Writer、Parser 和合成 Golden 已完成，但
-真实历史输出双跑与旧客户端 Parser 验收仍保持 PENDING。自动化替身与本机 Python fixture
-通过不代表真实外部环境已经可用。
+正式版本链已经有 application 实现：`FormalReleaseUseCase` 由资源 `BuildManifest` 生成
+传输对象、五库/六字段兼容输出和确定性 `UploadPlan`，顺序执行上传、远端回读验证、版本
+预留 `mark_ready`、入口 CAS `prepare_activation`/激活和 `confirm`；`VersionAllocator`
+提供入口流身份、FileListNo 单调分配、构建幂等、持久 JSON 状态和恢复冲突。CLI 已登记
+`release build`、`release version preview/allocate`、`release upload`、`release activate`、
+`release publish`、`external probe` 和 `compatibility dual-run`，具体端口仍由 composition
+factory 显式注入。
+
+外部探针位于 `integrations.probes`：SVN、Unity、Jenkins、Secrets 和 ObjectStore/CDN
+均执行真实注入端口调用，并写入不含秘密的 JSON 证据；没有真实地址、凭据、工具或历史输入
+时明确返回 `PENDING`。旧系统双跑位于 `compatibility.legacy_acceptance`，强制源码快照、
+历史产物和候选产物都在隔离根内，并对两边执行旧客户端 AssetBundle Parser 与六字段
+Parser；当前合成 fixture 已通过，真实历史产物仍保持 `PENDING`。

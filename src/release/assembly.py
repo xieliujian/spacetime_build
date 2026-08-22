@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from core.artifacts import ArtifactKind, LogicalArtifact
+from core.artifacts import ArtifactKind, BlobRef, LogicalArtifact
 from release.bundle_codec import ReleaseBundleFactory
 from release.bundles import (
     RELEASE_BUNDLE_SCHEMA_VERSION,
@@ -44,6 +44,9 @@ class ReleaseAssemblyItem:
     historical_object_version: str | None = None
     file_url: str | None = None
     subpackage_flag: int = 0
+    transfer_blob: BlobRef | None = None
+    original_size: int | None = None
+    transfer_size: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,14 +123,25 @@ class ReleaseAssembler:
                 else frozenset({ReleaseMembership.FILE_LIST})
             )
             file_url = item.file_url or f"cdn/{item.artifact.logical_path}"
+            transfer_blob = (
+                item.transfer_blob if item.transfer_blob is not None else item.artifact.blob
+            )
+            original_size = (
+                item.original_size if item.original_size is not None else item.artifact.blob.size
+            )
+            transfer_size = (
+                item.transfer_size if item.transfer_size is not None else transfer_blob.size
+            )
+            if original_size < 0 or transfer_size < 0:
+                raise ValueError("original_size 和 transfer_size 必须是非负整数")
             entry = ReleaseEntry(
                 logical_path=item.artifact.logical_path,
                 variant=variant,
                 source_blob=item.artifact.blob,
                 source_md5=item.source_md5,
-                original_size=item.artifact.blob.size,
-                transfer_blob=item.artifact.blob,
-                transfer_size=item.artifact.blob.size,
+                original_size=original_size,
+                transfer_blob=transfer_blob,
+                transfer_size=transfer_size,
                 list_version=file_list_no,
                 object_version=object_version,
                 file_url=file_url,

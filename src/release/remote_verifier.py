@@ -1,8 +1,8 @@
 """发布对象远端验证服务。
 
-验证器读取上传计划中的普通对象和版本入口对象，逐项比较远端存在性、SHA256 和大小；
-全部通过后再调用已有 ``verify_release_bundle`` 签发不可伪造验证凭证。验证失败不会
-执行上传、激活或修补远端对象。
+验证器读取上传计划中的普通不可变对象，逐项比较远端存在性、SHA256 和大小；版本入口
+属于尚未执行的 CAS replacement，由激活器在 CAS 回执后校验。全部普通对象通过后再调用
+已有 ``verify_release_bundle`` 签发不可伪造验证凭证。验证失败不会执行激活或修补远端对象。
 """
 
 from __future__ import annotations
@@ -29,7 +29,8 @@ class RemoteReleaseVerifier:
             plan: 与 bundle 绑定的上传计划。
 
         返回：
-            仅在所有计划对象和 bundle 必要传输对象通过时返回验证凭证。
+            仅在所有普通计划对象和 bundle 必要传输对象通过时返回验证凭证；版本入口
+            replacement 留给 CAS 激活阶段。
 
         异常：
             类型、Bundle/计划不一致、对象缺失或哈希/大小不匹配时抛出 ``PublishError``。
@@ -42,7 +43,10 @@ class RemoteReleaseVerifier:
         if bundle.bundle_id != plan.bundle_id:
             raise PublishError("UploadPlan.bundle_id 与 ReleaseBundle.bundle_id 不一致")
         remote_hashes: dict[str, str] = {}
-        for item in plan.objects + (plan.version_entry,):
+        # 版本入口是 CAS replacement，不是普通不可变上传对象；在 CAS 前远端仍然
+        # 保持旧内容，不能把它当作已经存在的新对象验证。激活器会在 CAS 回执后
+        # 校验 replacement 摘要。
+        for item in plan.objects:
             reference = StoredObject(item.key, item.blob.sha256, item.blob.size)
             observed = self._object_store.verify(reference)
             observed_hash = observed.sha256

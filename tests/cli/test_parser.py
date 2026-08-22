@@ -29,3 +29,22 @@ def test_parser_help_mentions_only_planned_command_names() -> None:
     assert "release" in text
     assert "package" in text
     assert "run" in text
+
+
+@pytest.mark.parametrize(
+    ("argv", "command"),
+    [
+        (["release", "build"], "release build"),
+        (["release", "version", "preview"], "release version preview"),
+        (["release", "version", "allocate"], "release version allocate"),
+        (["release", "upload"], "release upload"),
+        (["release", "activate"], "release activate"),
+        (["external", "probe"], "external probe"),
+        (["compatibility", "dual-run"], "compatibility dual-run"),
+    ],
+)
+def test_parser_exposes_formal_release_and_acceptance_commands(
+    argv: list[str], command: str
+) -> None:
+    """验证正式版本、外部探针和旧系统验收命令都落到稳定 command 身份。"""
+    assert build_parser().parse_args(argv).command == command

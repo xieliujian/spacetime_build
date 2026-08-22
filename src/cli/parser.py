@@ -60,7 +60,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     release = groups.add_parser("release", help="发布命令")
     release_sub = release.add_subparsers(dest="release_command", required=True)
+    _leaf(release_sub, "build", "release build", "构建并准备正式版本")
     _leaf(release_sub, "publish", "release publish", "发布 ReleaseBundle")
+    version = release_sub.add_parser("version", help="版本号命令")
+    version_sub = version.add_subparsers(dest="version_command", required=True)
+    _leaf(version_sub, "preview", "release version preview", "预览下一个 FileListNo")
+    _leaf(version_sub, "allocate", "release version allocate", "预留正式 FileListNo")
+    _leaf(release_sub, "upload", "release upload", "上传正式版本不可变对象")
+    _leaf(release_sub, "activate", "release activate", "CAS 激活版本入口")
     _leaf(release_sub, "rollback", "release rollback", "回滚到历史 ReleaseBundle")
 
     package = groups.add_parser("package", help="客户端包体命令")
@@ -72,6 +79,19 @@ def build_parser() -> argparse.ArgumentParser:
     _leaf(run_sub, "status", "run status", "查看运行状态")
     _leaf(run_sub, "cancel", "run cancel", "请求取消运行")
     _leaf(run_sub, "resume", "run resume", "恢复运行")
+
+    external = groups.add_parser("external", help="外部系统探针")
+    external_sub = external.add_subparsers(dest="external_command", required=True)
+    _leaf(external_sub, "probe", "external probe", "执行 SVN/Unity/Jenkins/Secrets/CDN 探针")
+
+    compatibility = groups.add_parser("compatibility", help="旧客户端兼容验收")
+    compatibility_sub = compatibility.add_subparsers(dest="compatibility_command", required=True)
+    _leaf(
+        compatibility_sub,
+        "dual-run",
+        "compatibility dual-run",
+        "执行隔离旧系统双跑和 Parser 验收",
+    )
     return parser
 
 
