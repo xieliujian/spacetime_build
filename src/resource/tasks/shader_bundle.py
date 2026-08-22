@@ -1,19 +1,191 @@
-"""shader bundle 资源任务。"""
+"""Shader Bundle 资源任务和 Unity Shader 打包端口。
 
+任务显式消费已登记的 ``depend/shader_variant/`` 产物，但不把该输入偷渡为
+``TaskSpec.dependencies``。variant 的逻辑路径、Blob SHA256 和大小会进入当前任务
+的输入摘要，避免缓存身份与实际构建输入脱节。Unity 工程、打包器和 Bundle 格式由
+``ShaderBundleBuilder`` 端口提供；资源任务只负责请求构造、输出边界校验和 CAS 提交。
+"""
+
+from __future__ import annotations
+
+import hashlib
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
+from core.artifacts import ArtifactKind, ArtifactMetadata, LogicalArtifact
+from core.manifest_codec import canonical_json_bytes
+from core.tasks import ArtifactCollection, BuildContext, TaskPlan, TaskResult, TaskSpec
 from resource.blob_committer import BlobCommitter
 from resource.model import ResourceBuildInput, ResourceKind
+from resource.task_base import _validate_logical_path
 from resource.tasks.file_task import FileResourceTask
+from resource.unity_operations import UnityOperation, UnityProjectRole
+
+_VARIANT_PREFIX = "depend/shader_variant/"
+_BUNDLE_PREFIX = "depend/shader_"
+
+
+def _validate_output_root(value: object) -> Path:
+    """校验 Unity 输出根是绝对普通目录路径。"""
+    if not isinstance(value, Path) or not value.is_absolute():
+        raise ValueError("output_root 必须是绝对 Path")
+    if value.exists() and (not value.is_dir() or value.is_symlink()):
+        raise ValueError("output_root 必须是普通目录或待创建路径")
+    return value
+
+
+def _ensure_under_root(path: Path, root: Path) -> Path:
+    """解析输出文件并拒绝越出 Unity 输出根。"""
+    resolved_path = path.resolve(strict=False)
+    resolved_root = root.resolve(strict=False)
+    if resolved_path == resolved_root or resolved_root not in resolved_path.parents:
+        raise ValueError(f"Shader bundle 输出越出 output_root: {path}")
+    return resolved_path
+
+
+@dataclass(frozen=True, slots=True)
+class ShaderBundleBuildRequest:
+    """绑定一次 Shader Bundle 构建的 variant 输入、操作和输出根。
+
+    参数：
+        resource_input: 固定源码、资源快照、平台、变体和规则身份。
+        variant_inputs: 已登记的 Shader variant 产物，按逻辑路径排序。
+        source_root: 已隔离的 Shader 输入目录。
+        output_root: Unity 生成文件的隔离输出根，可在执行时创建。
+        operation: 固定的 ``build_shader_bundle`` Shader 工程操作。
+
+    返回：
+        无；实例是不可变 Unity 构建请求。
+
+    异常：
+        输入、路径或操作身份非法时抛出 ``TypeError`` / ``ValueError``。
+
+    约束与副作用：
+        只保存请求，不读取输入、不创建目录、不启动 Unity。
+    """
+
+    resource_input: ResourceBuildInput
+    variant_inputs: tuple[LogicalArtifact, ...]
+    source_root: Path
+    output_root: Path
+    operation: UnityOperation
+
+    def __post_init__(self) -> None:
+        """校验 variant 输入、目录和 Shader Bundle 操作身份。"""
+        if not isinstance(self.resource_input, ResourceBuildInput):
+            raise TypeError("resource_input 必须是 ResourceBuildInput")
+        if not isinstance(self.variant_inputs, tuple) or not self.variant_inputs:
+            raise ValueError("variant_inputs 必须是非空 tuple")
+        for artifact in self.variant_inputs:
+            if not isinstance(artifact, LogicalArtifact):
+                raise TypeError("variant_inputs 必须全部是 LogicalArtifact")
+            if not artifact.logical_path.startswith(_VARIANT_PREFIX):
+                raise ValueError("Shader Bundle 只能消费 depend/shader_variant/ 输入")
+            if artifact.metadata.source_task != "shader_variant":
+                raise ValueError("Shader Bundle 输入必须来自 shader_variant 任务")
+        paths = tuple(item.logical_path for item in self.variant_inputs)
+        if len(set(paths)) != len(paths):
+            raise ValueError("variant_inputs 逻辑路径不得重复")
+        if paths != tuple(sorted(paths, key=lambda value: value.encode("utf-8"))):
+            raise ValueError("variant_inputs 必须按 UTF-8 字节序排列")
+        if not isinstance(self.source_root, Path) or not self.source_root.is_absolute():
+            raise ValueError("source_root 必须是绝对 Path")
+        if not self.source_root.is_dir() or self.source_root.is_symlink():
+            raise ValueError("source_root 必须是已存在的普通目录")
+        _validate_output_root(self.output_root)
+        if not isinstance(self.operation, UnityOperation):
+            raise TypeError("operation 必须是 UnityOperation")
+        if self.operation.name != "build_shader_bundle":
+            raise ValueError("Shader Bundle 操作必须是 build_shader_bundle")
+        if self.operation.project_role is not UnityProjectRole.SHADER:
+            raise ValueError("Shader Bundle 操作必须使用 Shader 工程")
+
+
+@dataclass(frozen=True, slots=True)
+class ShaderBundleBuildOutput:
+    """表示 Unity Shader Bundle 生成的一份逻辑路径和文件路径。"""
+
+    logical_path: str
+    path: Path
+
+    def __post_init__(self) -> None:
+        """校验 Bundle 输出逻辑路径和绝对文件路径类型。"""
+        _validate_logical_path(self.logical_path)
+        if not isinstance(self.path, Path) or not self.path.is_absolute():
+            raise ValueError("Shader Bundle 输出 path 必须是绝对 Path")
+
+
+class ShaderBundleBuilder(Protocol):
+    """Shader Bundle 规划与 Unity 执行端口。"""
+
+    def plan(self, request: ShaderBundleBuildRequest) -> tuple[str, ...]:
+        """根据固定请求规划精确 Bundle 输出，不执行 Unity。"""
+        ...
+
+    def build(self, request: ShaderBundleBuildRequest) -> tuple[ShaderBundleBuildOutput, ...]:
+        """执行 Bundle 构建并返回已生成的精确文件输出。"""
+        ...
 
 
 class ShaderBundleResourceTask(FileResourceTask):
-    """生成共享 shader bundle 产物并拥有独占输出前缀。"""
+    """生成共享 Shader Bundle，并拥有独占的 ``depend/shader_*`` 输出前缀。
+
+    注入 builder 时，任务只接收显式 variant 产物，规划和执行分别调用 ``plan`` 与
+    ``build``，并拒绝输出集合漂移、路径逃逸、缺失文件和 variant 前缀覆盖；未注入时
+    复用文件任务兼容模式。
+    """
 
     def __init__(
-        self, resource_input: ResourceBuildInput, source_root: Path, blob_committer: BlobCommitter
+        self,
+        resource_input: ResourceBuildInput,
+        source_root: Path,
+        blob_committer: BlobCommitter,
+        *,
+        builder: ShaderBundleBuilder | None = None,
+        output_root: Path | None = None,
+        operation_arguments: tuple[tuple[str, str], ...] = (),
+        implementation_version: str = "1",
     ) -> None:
-        """初始化 shader bundle 文件任务。"""
+        """初始化 Shader Bundle 文件任务和可选 Unity builder。
+
+        参数：
+            resource_input/source_root/blob_committer: 固定资源输入、Shader 源码目录和 CAS。
+            builder: 可选 Bundle 规划/执行端口；省略时使用文件任务兼容模式。
+            output_root: Unity Bundle 输出隔离根；使用 builder 时必须提供。
+            operation_arguments: 进入 UnityOperation 的确定性参数对。
+            implementation_version: 任务实现版本，参与任务身份。
+
+        返回：
+            ``None``。
+
+        异常：
+            参数、操作参数或 builder 能力不完整时抛出 ``TypeError`` / ``ValueError``。
+
+        约束与副作用：
+            只保存配置，不读取 Shader、不创建输出目录、不启动 Unity。
+        """
+        if not isinstance(implementation_version, str) or not implementation_version:
+            raise ValueError("implementation_version 必须是非空字符串")
+        if builder is None and output_root is not None:
+            raise ValueError("未提供 builder 时不得提供 output_root")
+        if builder is None and operation_arguments:
+            raise ValueError("未提供 builder 时不得配置 operation_arguments")
+        if builder is not None:
+            if output_root is None:
+                raise ValueError("提供 builder 时必须提供 output_root")
+            if not callable(getattr(builder, "plan", None)):
+                raise TypeError("builder.plan 必须可调用")
+            if not callable(getattr(builder, "build", None)):
+                raise TypeError("builder.build 必须可调用")
+        if any(key == "platform" for key, _value in operation_arguments):
+            raise ValueError("platform 参数由 ResourceBuildInput 固定，不得覆盖")
+        operation = UnityOperation(
+            name="build_shader_bundle",
+            project_role=UnityProjectRole.SHADER,
+            arguments=(("platform", resource_input.platform.value),) + operation_arguments,
+            expected_output_roots=("shader_bundle",),
+        )
         super().__init__(
             resource_input,
             source_root,
@@ -21,4 +193,204 @@ class ShaderBundleResourceTask(FileResourceTask):
             kind=ResourceKind.SHADER_BUNDLE,
             name="shader_bundle",
             output_prefix="depend/shader_bundle",
+            implementation_version=implementation_version,
         )
+        self._builder = builder
+        self._operation = operation
+        self._output_root = output_root
+
+    @staticmethod
+    def _variant_inputs(inputs: ArtifactCollection) -> tuple[LogicalArtifact, ...]:
+        """从显式输入集合提取并校验 Shader variant 产物。"""
+        if not isinstance(inputs, ArtifactCollection):
+            raise TypeError("inputs 必须是 ArtifactCollection")
+        variants = tuple(
+            artifact
+            for logical_path, artifact in inputs.as_mapping().items()
+            if logical_path.startswith(_VARIANT_PREFIX)
+        )
+        if not variants:
+            raise ValueError("Shader Bundle 缺少显式 shader variant 输入")
+        if any(
+            not logical_path.startswith(_VARIANT_PREFIX) for logical_path in inputs.as_mapping()
+        ):
+            raise ValueError("Shader Bundle 输入集合只能包含 shader variant 产物")
+        if any(item.metadata.source_task != "shader_variant" for item in variants):
+            raise ValueError("Shader Bundle 输入必须来自 shader_variant 任务")
+        return tuple(sorted(variants, key=lambda item: item.logical_path.encode("utf-8")))
+
+    @staticmethod
+    def _validate_planned_outputs(paths: tuple[str, ...]) -> tuple[str, ...]:
+        """校验 builder 规划返回的唯一 ``depend/shader_*`` 逻辑路径。"""
+        if not isinstance(paths, tuple) or not paths:
+            raise ValueError("Shader Bundle 至少需要一个规划输出")
+        for path in paths:
+            if not isinstance(path, str):
+                raise TypeError("Shader Bundle 规划输出必须是 str")
+            _validate_logical_path(path)
+            if not path.startswith(_BUNDLE_PREFIX) or path.startswith(_VARIANT_PREFIX):
+                raise ValueError("Shader Bundle 输出必须位于 depend/shader_* 且不得覆盖 variant")
+        if len(set(paths)) != len(paths):
+            raise ValueError("Shader Bundle 规划输出不得重复")
+        if paths != tuple(sorted(paths, key=lambda value: value.encode("utf-8"))):
+            raise ValueError("Shader Bundle 规划输出必须按 UTF-8 字节序排列")
+        return paths
+
+    def _request(self, inputs: ArtifactCollection) -> ShaderBundleBuildRequest:
+        """按显式输入集合创建一次 Shader Bundle 请求。"""
+        if self._builder is None or self._output_root is None:
+            raise ValueError("Shader Bundle 未配置 builder request")
+        if self.source_root is None:
+            raise ValueError("Shader Bundle 缺少 source_root")
+        return ShaderBundleBuildRequest(
+            self.resource_input,
+            self._variant_inputs(inputs),
+            self.source_root,
+            self._output_root,
+            self._operation,
+        )
+
+    def discover_outputs(self, source_root: Path) -> tuple[str, ...]:
+        """发现文件兼容模式输出；builder 模式的输出需结合显式输入规划。"""
+        if self._builder is not None:
+            raise ValueError("Shader Bundle builder 模式必须通过 plan_with_inputs 规划")
+        return super().discover_outputs(source_root)
+
+    def plan(
+        self,
+        context: BuildContext,
+        source_root: Path | ArtifactCollection | None = None,
+    ) -> TaskPlan:
+        """规划 Shader Bundle；builder 模式要求显式传入 variant 产物集合。
+
+        参数：
+            context: 共享构建上下文。
+            source_root: 文件兼容模式的输入目录，或 builder 模式的
+                ``ArtifactCollection``。
+
+        返回：
+            确定性 ``TaskPlan``；builder 模式会绑定 variant Blob 摘要。
+
+        异常：
+            builder 模式缺少显式输入时抛出 ``ValueError``；类型非法时抛出
+            ``TypeError``。
+
+        约束与副作用：
+            只规划输出和身份，不执行 Unity、不写 CAS；正式服务优先调用
+            ``plan_with_inputs``，避免把输入集合误当作路径。
+        """
+        if self._builder is not None:
+            if not isinstance(source_root, ArtifactCollection):
+                raise ValueError("Shader Bundle builder 模式必须显式提供 variant 输入")
+            return self.plan_with_inputs(context, source_root)
+        if source_root is not None and not isinstance(source_root, Path):
+            raise TypeError("source_root 必须是 Path 或 None")
+        return super().plan(context, source_root)
+
+    def plan_with_inputs(
+        self,
+        context: BuildContext,
+        inputs: ArtifactCollection,
+        source_root: Path | None = None,
+    ) -> TaskPlan:
+        """生成绑定 variant 输入摘要和 ``build_shader_bundle`` 操作的任务计划。"""
+        if self._builder is None:
+            return super().plan_with_inputs(context, inputs, source_root)
+        request = self._request(inputs)
+        paths = self._validate_planned_outputs(self._builder.plan(request))
+        input_payload = [
+            {
+                "logical_path": artifact.logical_path,
+                "sha256": artifact.blob.sha256,
+                "size": artifact.blob.size,
+            }
+            for artifact in request.variant_inputs
+        ]
+        resolved_input_digest = hashlib.sha256(
+            canonical_json_bytes(
+                {
+                    "source_snapshot_id": self.resource_input.source_snapshot_id,
+                    "resource_snapshot_id": self.resource_input.resource_snapshot_id,
+                    "variant_inputs": input_payload,
+                }
+            )
+        ).hexdigest()
+        config_payload = {
+            "operation": request.operation.name,
+            "project_role": request.operation.project_role.value,
+            "arguments": [list(pair) for pair in request.operation.arguments],
+            "expected_output_roots": list(request.operation.expected_output_roots),
+            "rule_version": self.resource_input.rule_version,
+        }
+        config_digest = hashlib.sha256(canonical_json_bytes(config_payload)).hexdigest()
+        if not isinstance(context, BuildContext):
+            raise TypeError("context 必须是 BuildContext")
+        spec = TaskSpec(
+            self.name,
+            (),
+            frozenset(paths),
+            self._implementation_version,
+            (
+                ("kind", self.resource_kind.value),
+                ("platform", self.resource_input.platform.value),
+                ("variant", self.resource_input.variant.value),
+            ),
+        )
+        return TaskPlan(spec, resolved_input_digest, config_digest)
+
+    def build(self, context: BuildContext, inputs: ArtifactCollection) -> TaskResult:
+        """执行 Shader Bundle 构建、完整校验输出并提交 CAS。"""
+        if self._builder is None:
+            return super().build(context, inputs)
+        request = self._request(inputs)
+        planned_paths = self._validate_planned_outputs(self._builder.plan(request))
+        outputs = self._builder.build(request)
+        if not isinstance(outputs, tuple):
+            raise TypeError("Shader Bundle builder 输出必须是 tuple")
+        actual_paths = tuple(output.logical_path for output in outputs)
+        for output in outputs:
+            if not isinstance(output, ShaderBundleBuildOutput):
+                raise TypeError("Shader Bundle builder 输出类型非法")
+            if not output.logical_path.startswith(_BUNDLE_PREFIX) or output.logical_path.startswith(
+                _VARIANT_PREFIX
+            ):
+                raise ValueError("Shader Bundle 输出必须位于 depend/shader_* 且不得覆盖 variant")
+            resolved_path = _ensure_under_root(output.path, request.output_root)
+            if output.path.is_symlink() or not resolved_path.is_file():
+                raise FileNotFoundError(f"Shader Bundle 输出不是普通文件: {output.path}")
+        if actual_paths != planned_paths:
+            raise ValueError("Shader Bundle 实际输出与规划输出不一致")
+        # 先完成所有文件边界和集合校验，再调用 CAS，避免留下部分 Bundle。
+        artifacts: list[LogicalArtifact] = []
+        for output in outputs:
+            blob = self._blob_committer.commit(output.path, allowed_root=request.output_root)
+            artifacts.append(
+                LogicalArtifact(
+                    logical_path=output.logical_path,
+                    kind=ArtifactKind.FILE,
+                    blob=blob,
+                    dependencies=(),
+                    subpackage_ids=frozenset(),
+                    metadata=ArtifactMetadata(
+                        source_task=self.name,
+                        source_revision=context.revision,
+                        toolchain_digest=context.toolchain_digest,
+                        attributes=(
+                            ("platform", self.resource_input.platform.value),
+                            ("variant", self.resource_input.variant.value),
+                            ("rule_version", self.resource_input.rule_version),
+                            ("operation", request.operation.name),
+                            ("variant_input_count", str(len(request.variant_inputs))),
+                        ),
+                    ),
+                )
+            )
+        return TaskResult(tuple(artifacts))
+
+
+__all__ = [
+    "ShaderBundleBuildOutput",
+    "ShaderBundleBuildRequest",
+    "ShaderBundleBuilder",
+    "ShaderBundleResourceTask",
+]

@@ -277,6 +277,32 @@ class ResourceBuildTask(ABC):
         )
         return TaskPlan(spec, resolved_input_digest, config_digest)
 
+    def plan_with_inputs(
+        self,
+        context: BuildContext,
+        inputs: ArtifactCollection,
+        source_root: Path | None = None,
+    ) -> TaskPlan:
+        """按显式输入规划任务，默认复用无输入资源任务契约。
+
+        参数：
+            context: 共享构建上下文。
+            inputs: 调用方明确传入的上游产物集合。
+            source_root: 可选固定输入目录；语义与 ``plan`` 相同。
+
+        返回：
+            与 ``plan`` 相同的确定性任务计划。
+
+        异常：
+            输入类型非法时抛出 ``TypeError``；具体任务可继续校验输入内容。
+
+        约束与副作用：
+            默认实现不把输入偷偷变成任务依赖；需要输入身份的任务必须覆盖本方法。
+        """
+        if not isinstance(inputs, ArtifactCollection):
+            raise TypeError("inputs 必须是 ArtifactCollection")
+        return self.plan(context, source_root)
+
     def execute(self, context: BuildContext, inputs: ArtifactCollection) -> TaskResult:
         """执行子类构建逻辑并检查返回类型。
 

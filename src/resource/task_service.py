@@ -123,7 +123,7 @@ class ResourceBuildService:
             raise TypeError("context 必须是 BuildContext")
         if not isinstance(inputs, ArtifactCollection):
             raise TypeError("inputs 必须是 ArtifactCollection")
-        plan = task.plan(context)
+        plan = task.plan_with_inputs(context, inputs)
         if plan.spec.dependencies:
             raise ValueError("正式版本资源任务不得声明工具内置依赖")
         identity = TaskIdentity.from_plan(plan, context, ())
