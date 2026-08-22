@@ -32,12 +32,15 @@
   bytecode、encrypted 三种模式的类型化转换端口和秘密引用边界；`shader_variant` 提供
   `collect_variant` 的 Shader 工程操作、假 Unity builder 和精确输出契约；`shader_bundle`
   提供显式 variant 输入摘要、`build_shader_bundle` Shader 工程操作、假 Unity builder、
-  `depend/shader_*` 输出所有权和完整校验后 CAS 提交。
+  `depend/shader_*` 输出所有权和完整校验后 CAS 提交；`scene` 提供显式 Shader Bundle 输入
+  摘要、`build_scene` 资源工程操作、假 Unity builder、`scene/` 输出所有权和 Unity Manifest
+  依赖保序校验。
 
 当前仍没有面向正式版本的 Unity 资源打包命令、版本生成、上传或正式发布命令。除显式注入
-转换器或 builder 的 `config`、`lua`、`shader_variant` 和 `shader_bundle` 外，其余资源任务
+转换器或 builder 的 `config`、`lua`、`shader_variant`、`shader_bundle` 和 `scene` 外，其余资源任务
 当前提供的是固定输入目录到 CAS 的自动化契约实现；这些端口模式也不等于真实工具产物已验收。
-`shader_bundle` 还要求调用方显式传入已登记的 `shader_variant` 产物，任务计划不把它伪装成
+`shader_bundle` 还要求调用方显式传入已登记的 `shader_variant` 产物，`scene` 要求显式传入已
+登记的 `shader_bundle` 产物；这些输入都进入任务摘要，任务计划不把它们伪装成
 `TaskSpec.dependencies`。真实 SVN、Unity、Lua 编译/加密器、Jenkins、Secrets 和供应商 CDN 尚未
 验收。Redirect、分包、低清、发布编排和 CLI 仍属于后续层。第三阶段兼容协议的纯 Python
 DTO、Writer、Parser 和合成 Golden 已完成，但
