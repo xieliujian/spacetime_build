@@ -11,7 +11,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import cast
 
 from application.model import RunState, can_transition
 from core.errors import BuildError
@@ -187,6 +189,93 @@ class RunRecordRepository:
         receipt = RecordReceipt(record.record_id, locator, cas.generation, False)
         self._receipts[record.record_id] = receipt
         return receipt
+
+    def read_current(self, run_id: str) -> tuple[RunRecord, int]:
+        """读取持久化 current 索引指向的最新运行记录。
+
+        参数：
+            run_id: 要读取的运行身份。
+
+        返回：
+            ``(RunRecord, generation)``，generation 可直接作为下一次 CAS 的期望代际。
+
+        异常：
+            对象缺失、索引 locator 越界、JSON/schema/状态非法或存储不支持读取时抛出
+            ``RecordError``。
+
+        约束与副作用：
+            只读取对象存储，不改变 current 索引；索引 locator 必须指向同一 run 的
+            ``runs/<run>/records/<record>.json``，防止跨运行路径注入。
+        """
+        _validate_identity(run_id, "run_id")
+        index_key = f"runs/{run_id}/current"
+        try:
+            locator = self._object_store.read(index_key).decode("ascii")
+            locator_parts = locator.split("/")
+            if (
+                len(locator_parts) != 4
+                or locator_parts[0] != "runs"
+                or locator_parts[1] != run_id
+                or locator_parts[2] != "records"
+                or not locator_parts[3].endswith(".json")
+                or _IDENTITY.fullmatch(locator_parts[3][:-5]) is None
+            ):
+                raise RecordError("运行记录 current locator 非法")
+            document = json.loads(self._object_store.read(locator).decode("utf-8"))
+            record = _record_from_document(document)
+            if record.run_id != run_id:
+                raise RecordError("运行记录 run_id 与 current 索引不一致")
+            generation = self._object_store.current_generation(index_key)
+        except RecordError:
+            raise
+        except (
+            LookupError,
+            OSError,
+            UnicodeError,
+            ValueError,
+            TypeError,
+            json.JSONDecodeError,
+        ) as exc:
+            raise RecordError(f"运行记录读取失败: {run_id}") from exc
+        return record, generation
+
+
+def _validate_identity(value: object, field_name: str) -> str:
+    """校验运行记录身份字段。"""
+    if not isinstance(value, str) or not value or _IDENTITY.fullmatch(value) is None:
+        raise RecordError(f"{field_name} 必须是无控制字符身份文本")
+    return value
+
+
+def _record_from_document(value: object) -> RunRecord:
+    """从不可信 JSON 文档严格重建 RunRecord。"""
+    if not isinstance(value, Mapping):
+        raise RecordError("运行记录根对象必须是 object")
+    document = cast(Mapping[str, object], value)
+    schema_version = document.get("schema_version")
+    if not isinstance(schema_version, int) or isinstance(schema_version, bool):
+        raise RecordError("运行记录 schema_version 必须是 int")
+    try:
+        state = RunState(document.get("state"))
+    except ValueError as exc:
+        raise RecordError("运行记录 state 非法") from exc
+    artifact_ids = document.get("artifact_ids")
+    if not isinstance(artifact_ids, list):
+        raise RecordError("运行记录 artifact_ids 必须是 list")
+    raw_artifact_ids = cast(list[object], artifact_ids)
+    if any(not isinstance(item, str) for item in raw_artifact_ids):
+        raise RecordError("运行记录 artifact_ids 必须是字符串列表")
+    error = document.get("error")
+    if error is not None and not isinstance(error, str):
+        raise RecordError("运行记录 error 必须是字符串或 None")
+    return RunRecord(
+        _validate_identity(document.get("run_id"), "run_id"),
+        state,
+        _validate_identity(document.get("request_digest"), "request_digest"),
+        tuple(cast(list[str], raw_artifact_ids)),
+        error,
+        schema_version,
+    )
 
 
 __all__ = [

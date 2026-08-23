@@ -8,15 +8,24 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
 
 from application.model import RunState
+from release.activation import VerifiedReleaseBundle
+from release.bundles import ReleaseBundle
+from release.upload_plan import UploadPlan
+from release.uploader import UploadCancellation
 
 
 class ReleaseUploader(Protocol):
     """发布对象上传服务所需的最小协议。"""
 
-    def upload(self, plan: object, *, cancellation: object = None) -> object:
+    def upload(
+        self,
+        plan: UploadPlan,
+        *,
+        cancellation: UploadCancellation | None = None,
+    ) -> object:
         """上传不可变对象并返回回执。"""
         ...
 
@@ -24,7 +33,7 @@ class ReleaseUploader(Protocol):
 class ReleaseVerifier(Protocol):
     """远端对象验证服务所需的最小协议。"""
 
-    def verify(self, bundle: object, plan: object) -> object:
+    def verify(self, bundle: ReleaseBundle, plan: UploadPlan) -> object:
         """验证对象并返回不可伪造凭证。"""
         ...
 
@@ -32,7 +41,7 @@ class ReleaseVerifier(Protocol):
 class ReleaseActivator(Protocol):
     """版本入口 CAS 激活服务所需的最小协议。"""
 
-    def activate(self, plan: object, verification: object) -> object:
+    def activate(self, plan: UploadPlan, verification: VerifiedReleaseBundle) -> object:
         """使用验证凭证执行一次 CAS。"""
         ...
 
@@ -64,10 +73,10 @@ class PublishReleaseUseCase:
 
     def run(
         self,
-        bundle: object,
-        plan: object,
+        bundle: ReleaseBundle,
+        plan: UploadPlan,
         *,
-        cancellation: object = None,
+        cancellation: UploadCancellation | None = None,
     ) -> PublishReleaseResult:
         """执行上传→验证→激活并将失败映射为稳定运行状态。
 
@@ -90,7 +99,7 @@ class PublishReleaseUseCase:
         try:
             uploaded = self._uploader.upload(plan, cancellation=cancellation)
             verification = self._verifier.verify(bundle, plan)
-            activation = self._activator.activate(plan, verification)
+            activation = self._activator.activate(plan, cast(VerifiedReleaseBundle, verification))
             return PublishReleaseResult(
                 RunState.SUCCEEDED, uploaded, verification, activation, None
             )

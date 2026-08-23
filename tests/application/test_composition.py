@@ -47,3 +47,6 @@ def test_production_application_services_bind_release_and_probe_dependencies(
     assert services.publish_release is not None
     assert services.preflight is not None
     assert services.probes is not None
+    assert services.run_record_repository is not None
+    assert services.run_operations is not None
+    assert services.legacy_acceptance is not None

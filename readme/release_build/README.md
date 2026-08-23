@@ -51,7 +51,8 @@
 预留 `mark_ready`、入口 CAS `prepare_activation`/激活和 `confirm`；`VersionAllocator`
 提供入口流身份、FileListNo 单调分配、构建幂等、持久 JSON 状态和恢复冲突。CLI 已登记
 `release build`、`release version preview/allocate`、`release upload`、`release activate`、
-`release publish`、`external probe` 和 `compatibility dual-run`，具体端口由
+`release publish`、`release rollback`、`plan`、`resource build`、`package build`、
+`external probe`、`compatibility dual-run` 和 `run status/cancel/resume`，具体端口由
 `ProductionApplicationServices.create` 和 `build_production_composition_root` 显式注入；没有真实外部配置时仍会
 拒绝执行或返回 `PENDING`。
 

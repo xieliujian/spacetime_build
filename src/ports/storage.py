@@ -90,6 +90,14 @@ class ObjectStore:
         """读取并校验对象摘要和大小。"""
         raise NotImplementedError
 
+    def read(self, key: str) -> bytes:
+        """读取一个已存在对象的原始内容。"""
+        raise NotImplementedError
+
+    def current_generation(self, key: str) -> int:
+        """读取可变对象索引当前代际；不存在时返回零。"""
+        raise NotImplementedError
+
     def compare_and_swap(self, request: CompareAndSwapRequest) -> CompareAndSwapResult:
         """按旧代际原子替换版本入口。"""
         raise NotImplementedError

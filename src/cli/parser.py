@@ -57,6 +57,45 @@ def _add_formal_release_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--expected-entry-digest", type=str, default=argparse.SUPPRESS)
 
 
+def _add_resource_arguments(parser: argparse.ArgumentParser) -> None:
+    """为资源计划和构建命令添加 application 上下文与输出参数。"""
+    parser.add_argument("--request-digest", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--toolchain-digest", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--baseline-id", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--schema-version", type=int, default=argparse.SUPPRESS)
+    parser.add_argument("--manifest-output", type=str, default=argparse.SUPPRESS)
+
+
+def _add_release_stage_arguments(parser: argparse.ArgumentParser) -> None:
+    """为独立发布阶段添加严格 codec 文件和回滚身份参数。"""
+    parser.add_argument("--bundle-path", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--upload-plan-path", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--verification-path", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--current-bundle-id", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--target-bundle-id", type=str, default=argparse.SUPPRESS)
+
+
+def _add_package_arguments(parser: argparse.ArgumentParser) -> None:
+    """为客户端包体请求添加固定 revision、版本和验证凭证参数。"""
+    parser.add_argument("--source-revision", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--release-bundle-id", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--verification-path", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--unity-version", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--application-id", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--version-name", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--version-code", type=int, default=argparse.SUPPRESS)
+    parser.add_argument("--package-profile", type=str, default=argparse.SUPPRESS)
+
+
+def _add_compatibility_arguments(parser: argparse.ArgumentParser) -> None:
+    """为隔离旧系统双跑添加四个根路径和换行策略参数。"""
+    parser.add_argument("--isolation-root", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--source-snapshot", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--historical-output", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--candidate-output", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--line-ending", choices=("lf", "crlf"), default=argparse.SUPPRESS)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """构造完整命令树。
 
@@ -73,31 +112,38 @@ def build_parser() -> argparse.ArgumentParser:
     _add_common_arguments(parser, suppress_defaults=False)
     groups = parser.add_subparsers(dest="command_group", required=True)
 
-    _leaf(groups, "plan", "plan", "生成构建计划")
+    plan = _leaf(groups, "plan", "plan", "生成构建计划")
+    _add_resource_arguments(plan)
 
     resource = groups.add_parser("resource", help="资源构建命令")
     resource_sub = resource.add_subparsers(dest="resource_command", required=True)
-    _leaf(resource_sub, "build", "resource build", "构建资源")
+    resource_build = _leaf(resource_sub, "build", "resource build", "构建资源")
+    _add_resource_arguments(resource_build)
 
     release = groups.add_parser("release", help="发布命令")
     release_sub = release.add_subparsers(dest="release_command", required=True)
     release_build = _leaf(release_sub, "build", "release build", "构建并准备正式版本")
     _add_version_arguments(release_build)
     _add_formal_release_arguments(release_build)
-    _leaf(release_sub, "publish", "release publish", "发布 ReleaseBundle")
+    publish = _leaf(release_sub, "publish", "release publish", "发布 ReleaseBundle")
+    _add_release_stage_arguments(publish)
     version = release_sub.add_parser("version", help="版本号命令")
     version_sub = version.add_subparsers(dest="version_command", required=True)
     preview = _leaf(version_sub, "preview", "release version preview", "预览下一个 FileListNo")
     _add_version_arguments(preview)
     allocate = _leaf(version_sub, "allocate", "release version allocate", "预留正式 FileListNo")
     _add_version_arguments(allocate)
-    _leaf(release_sub, "upload", "release upload", "上传正式版本不可变对象")
-    _leaf(release_sub, "activate", "release activate", "CAS 激活版本入口")
-    _leaf(release_sub, "rollback", "release rollback", "回滚到历史 ReleaseBundle")
+    upload = _leaf(release_sub, "upload", "release upload", "上传正式版本不可变对象")
+    _add_release_stage_arguments(upload)
+    activate = _leaf(release_sub, "activate", "release activate", "CAS 激活版本入口")
+    _add_release_stage_arguments(activate)
+    rollback = _leaf(release_sub, "rollback", "release rollback", "回滚到历史 ReleaseBundle")
+    _add_release_stage_arguments(rollback)
 
     package = groups.add_parser("package", help="客户端包体命令")
     package_sub = package.add_subparsers(dest="package_command", required=True)
-    _leaf(package_sub, "build", "package build", "构建客户端包体")
+    package_build = _leaf(package_sub, "build", "package build", "构建客户端包体")
+    _add_package_arguments(package_build)
 
     run = groups.add_parser("run", help="运行记录操作")
     run_sub = run.add_subparsers(dest="run_command", required=True)
@@ -130,6 +176,7 @@ def build_parser() -> argparse.ArgumentParser:
         "compatibility dual-run",
         "执行隔离旧系统双跑和 Parser 验收",
     )
+    _add_compatibility_arguments(compatibility_sub.choices["dual-run"])
     return parser
 
 

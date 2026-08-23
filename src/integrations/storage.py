@@ -123,6 +123,20 @@ class HttpObjectStore(ObjectStore):
         size = self._required_size(response)
         return ObjectVerification(reference, True, sha256, size)
 
+    def read(self, key: str) -> bytes:
+        """通过 GET 读取对象内容，并把非成功响应转换为工具错误。"""
+        response = self._send(HttpMethod.GET, key)
+        self._require_success(response, "对象 GET")
+        return response.body
+
+    def current_generation(self, key: str) -> int:
+        """通过 HEAD 读取对象代际；缺失对象的代际按零处理。"""
+        response = self._send(HttpMethod.HEAD, key)
+        if response.status_code == 404:
+            return 0
+        self._require_success(response, "对象代际 HEAD")
+        return self._required_generation(response)
+
     def compare_and_swap(self, request: CompareAndSwapRequest) -> CompareAndSwapResult:
         """使用 If-Match 代际执行版本入口 CAS，并保留服务端冲突摘要。"""
         if not isinstance(request, CompareAndSwapRequest):
@@ -311,6 +325,17 @@ class FileSystemObjectStore(ObjectStore):
         return ObjectVerification(
             reference, True, hashlib.sha256(content).hexdigest(), len(content)
         )
+
+    def read(self, key: str) -> bytes:
+        """读取对象内容并拒绝符号链接或缺失对象。"""
+        path = self._path(key)
+        if path.is_symlink() or not path.is_file():
+            raise FileNotFoundError(f"对象不存在: {key}")
+        return path.read_bytes()
+
+    def current_generation(self, key: str) -> int:
+        """读取入口对象的当前代际；缺失 generation 文件时返回零。"""
+        return self._read_generation(self._path(key + ".generation"))
 
     def compare_and_swap(self, request: CompareAndSwapRequest) -> CompareAndSwapResult:
         """按当前代际原子替换入口内容并返回新代际。"""

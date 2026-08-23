@@ -8,12 +8,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+from application.build_resources import BuildResourcesUseCase
 from application.formal_release import FormalReleaseUseCase
+from application.model import ApplicationRequest
+from application.operations import RunOperations
 from application.preflight import PreflightProbe, PreflightService
+from application.package_client import PackageClientUseCase
 from application.publish_release import PublishReleaseUseCase
+from application.records import RunRecord, RunRecordRepository
+from compatibility.legacy_acceptance import LegacyBuildRunner, LegacyDualRunService
+from core.tasks import BuildContext, BuildTask
 from integrations.factory import IntegrationFactory
 from integrations.probes import ExternalProbeSuite
 from ports.ci import CiJobClient
@@ -25,6 +33,12 @@ from release.remote_verifier import RemoteReleaseVerifier
 from release.uploader import ReleaseObjectUploader
 from release.versioning import FileVersionStateStore, VersionAllocator
 from integrations.unity import UnityBatchRunner
+
+
+ResourceTaskProvider = Callable[
+    [object, ApplicationRequest, BuildContext], Mapping[str, BuildTask]
+]
+RunResumeAction = Callable[[RunRecord, object], object]
 
 
 class _UnconfiguredPreflightProbe:
@@ -75,6 +89,14 @@ class ProductionApplicationServices:
     publish_release: PublishReleaseUseCase
     preflight: PreflightService
     probes: ExternalProbeSuite
+    resource_build: BuildResourcesUseCase | None
+    resource_task_provider: ResourceTaskProvider | None
+    package_client: PackageClientUseCase | None
+    legacy_acceptance: LegacyDualRunService
+    legacy_runner: LegacyBuildRunner | None
+    run_record_repository: RunRecordRepository
+    run_operations: RunOperations
+    run_resume_action: RunResumeAction | None
 
     @classmethod
     def create(
@@ -84,6 +106,14 @@ class ProductionApplicationServices:
         *,
         max_upload_retries: int = 0,
         preflight_probe: PreflightProbe | None = None,
+        resource_build: BuildResourcesUseCase | None = None,
+        resource_task_provider: ResourceTaskProvider | None = None,
+        package_client: PackageClientUseCase | None = None,
+        legacy_acceptance: LegacyDualRunService | None = None,
+        legacy_runner: LegacyBuildRunner | None = None,
+        run_record_repository: RunRecordRepository | None = None,
+        run_operations: RunOperations | None = None,
+        run_resume_action: RunResumeAction | None = None,
     ) -> "ProductionApplicationServices":
         """从唯一外部组合根创建完整 application 服务集合。
 
@@ -108,6 +138,20 @@ class ProductionApplicationServices:
             raise ValueError("version_state_root 必须是绝对 Path")
         if not callable(getattr(integrations.object_store, "put", None)):
             raise TypeError("integrations.object_store 未实现 ObjectStore")
+        if resource_task_provider is not None and not callable(resource_task_provider):
+            raise TypeError("resource_task_provider 必须是可调用对象或 None")
+        if legacy_acceptance is not None and not isinstance(
+            legacy_acceptance, LegacyDualRunService
+        ):
+            raise TypeError("legacy_acceptance 必须是 LegacyDualRunService 或 None")
+        if run_record_repository is not None and not isinstance(
+            run_record_repository, RunRecordRepository
+        ):
+            raise TypeError("run_record_repository 必须是 RunRecordRepository 或 None")
+        if run_operations is not None and not isinstance(run_operations, RunOperations):
+            raise TypeError("run_operations 必须是 RunOperations 或 None")
+        if run_resume_action is not None and not callable(run_resume_action):
+            raise TypeError("run_resume_action 必须是可调用对象或 None")
         allocator = VersionAllocator(FileVersionStateStore(version_state_root))
         uploader = ReleaseObjectUploader(
             integrations.object_store,
@@ -129,7 +173,20 @@ class ProductionApplicationServices:
             publish_release=PublishReleaseUseCase(uploader, verifier, activator),
             preflight=PreflightService(preflight_probe or _UnconfiguredPreflightProbe()),
             probes=ExternalProbeSuite(),
+            resource_build=resource_build,
+            resource_task_provider=resource_task_provider,
+            package_client=package_client,
+            legacy_acceptance=legacy_acceptance or LegacyDualRunService(),
+            legacy_runner=legacy_runner,
+            run_record_repository=run_record_repository
+            or RunRecordRepository(integrations.object_store),
+            run_operations=run_operations or RunOperations(),
+            run_resume_action=run_resume_action,
         )
 
 
-__all__ = ["ProductionApplicationServices"]
+__all__ = [
+    "ProductionApplicationServices",
+    "ResourceTaskProvider",
+    "RunResumeAction",
+]

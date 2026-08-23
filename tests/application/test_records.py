@@ -56,6 +56,15 @@ class _Store(ObjectStore):
             hashlib.sha256(request.content).hexdigest(),
         )
 
+    def read(self, key: str) -> bytes:
+        """读取内存对象，模拟持久对象存储的内容读取端口。"""
+        return self.objects[key]
+
+    def current_generation(self, key: str) -> int:
+        """返回内存索引的当前代际。"""
+        del key
+        return self.generation
+
 
 def _record(state: RunState) -> RunRecord:
     """创建测试运行记录。"""
@@ -89,3 +98,16 @@ def test_record_repository_rejects_state_regression_and_cas_conflict() -> None:
     conflict_repository = RunRecordRepository(_Store(conflict=True))
     with pytest.raises(RecordConflictError):
         conflict_repository.write(_record(RunState.CREATED), expected_generation=0)
+
+
+def test_record_repository_reads_current_record_and_generation() -> None:
+    """Given 已写入运行记录，When 读取 current，Then 返回记录和 CAS 代际。"""
+    store = _Store()
+    repository = RunRecordRepository(store)
+    original = _record(RunState.CREATED)
+    repository.write(original, expected_generation=0)
+
+    record, generation = repository.read_current("run-1")
+
+    assert record == original
+    assert generation == 1

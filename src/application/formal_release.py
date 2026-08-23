@@ -12,12 +12,14 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
 
 from application.model import RunState
 from core.artifacts import BlobRef
 from core.build_records import BuildManifest
+from release.activation import VerifiedReleaseBundle
 from release.assembly import ReleaseAssembler, ReleaseAssemblyItem, ReleaseAssemblyResult
+from release.bundles import ReleaseBundle
 from release.entries import ResourceVariant
 from release.protocol_outputs import ProtocolOutputBuilder
 from release.transfer import TransferObjectBuilder
@@ -42,7 +44,7 @@ class FormalUploader(Protocol):
 class FormalVerifier(Protocol):
     """正式发布远端验证端口。"""
 
-    def verify(self, bundle: object, plan: UploadPlan) -> object:
+    def verify(self, bundle: ReleaseBundle, plan: UploadPlan) -> object:
         """验证普通对象并返回绑定 Bundle 的凭证。"""
         ...
 
@@ -50,7 +52,7 @@ class FormalVerifier(Protocol):
 class FormalActivator(Protocol):
     """正式版本入口 CAS 激活端口。"""
 
-    def activate(self, plan: UploadPlan, verification: object) -> object:
+    def activate(self, plan: UploadPlan, verification: VerifiedReleaseBundle) -> object:
         """执行一次版本入口 CAS。"""
         ...
 
@@ -236,7 +238,7 @@ class FormalReleaseUseCase:
                 expected_entry_digest=request.expected_entry_digest,
                 replacement_entry=version_entry.content,
             )
-            activation = self._activator.activate(plan, verification)
+            activation = self._activator.activate(plan, cast(VerifiedReleaseBundle, verification))
             generation = getattr(activation, "generation", None)
             digest = getattr(activation, "sha256", None)
             if not isinstance(generation, int) or not isinstance(digest, str):
