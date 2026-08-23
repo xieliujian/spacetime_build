@@ -11,6 +11,8 @@ from collections.abc import Callable
 
 from cli.commands import CommandServices
 from core.errors import ConfigurationError
+from integrations.factory import IntegrationFactory
+from pathlib import Path
 
 
 class BootstrapError(ConfigurationError):
@@ -42,4 +44,20 @@ def build_composition_root(
     return services
 
 
-__all__ = ["BootstrapError", "build_composition_root"]
+def build_production_composition_root(
+    integrations: IntegrationFactory,
+    version_state_root: Path,
+) -> CommandServices:
+    """从显式 IntegrationFactory 装配可执行的 production CLI 服务。"""
+    from application.composition import ProductionApplicationServices
+    from cli.production import create_production_command_services
+
+    application_services = ProductionApplicationServices.create(integrations, version_state_root)
+    return create_production_command_services(application_services)
+
+
+__all__ = [
+    "BootstrapError",
+    "build_composition_root",
+    "build_production_composition_root",
+]

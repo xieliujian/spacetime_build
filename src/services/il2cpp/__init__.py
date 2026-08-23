@@ -1,4 +1,4 @@
-"""IL2CPP 构建服务的不可变模型和后续执行入口。"""
+"""IL2CPP 构建服务的模型、规划、归档、验证和本地/CI 执行入口。"""
 
 from services.il2cpp.archive import (
     Il2CppArchive,
@@ -16,6 +16,8 @@ from services.il2cpp.model import (
 from services.il2cpp.planner import Il2CppCommandPlan, Il2CppPlanner, Il2CppToolchain
 from services.il2cpp.protection import Il2CppProtectionPlan, Il2CppProtectionPlanner
 from services.il2cpp.validator import Il2CppOutputValidator, Il2CppValidationReport
+from services.il2cpp.local import Il2CppLocalExecutor
+from services.il2cpp.remote import Il2CppRemoteExecutor
 
 __all__ = [
     "Il2CppArchive",
@@ -34,4 +36,6 @@ __all__ = [
     "Il2CppProtectionPlanner",
     "Il2CppOutputValidator",
     "Il2CppValidationReport",
+    "Il2CppLocalExecutor",
+    "Il2CppRemoteExecutor",
 ]

@@ -15,8 +15,13 @@
 - [第一层基础设施实施计划与完成记录](01_第一层基础设施实施计划.md)
 - [第二层外部集成适配器实施记录](02_第二层外部集成适配器实施计划.md)
 - [正式版本与迁移验收实施记录](03_正式版本与迁移验收实施记录.md)
+- [七项未闭环能力实现进度](04_七项未闭环实现进度.md)
 
 ## 当前实现状态
+
+七项后续能力的最新逐项状态见 [七项未闭环能力实现进度](04_七项未闭环实现进度.md)。当前结论是：七项能力的本地
+实现边界、显式组合根和自动化门禁已补齐；真实 Unity/平台工具链、生产外部服务、历史产物双跑和旧客户端验收仍
+需要部署方提供受控环境证据，不能仅以测试通过代替。
 
 正式版本制作的第一层基础设施和第二层自动化适配器已经实现并通过对应目标测试：
 
@@ -41,13 +46,14 @@
   接入 `UnityAssetResourceTask`，各自声明输入来源、操作名、设置和输出前缀，并可由
   `UnityBatchAssetBuilder` 调用真实 Unity batchmode。
 
-正式版本链已经有 application 实现：`FormalReleaseUseCase` 由资源 `BuildManifest` 生成
+正式版本链已经有 application 实现和 production CLI handler：`FormalReleaseUseCase` 由资源 `BuildManifest` 生成
 传输对象、五库/六字段兼容输出和确定性 `UploadPlan`，顺序执行上传、远端回读验证、版本
 预留 `mark_ready`、入口 CAS `prepare_activation`/激活和 `confirm`；`VersionAllocator`
 提供入口流身份、FileListNo 单调分配、构建幂等、持久 JSON 状态和恢复冲突。CLI 已登记
 `release build`、`release version preview/allocate`、`release upload`、`release activate`、
-`release publish`、`external probe` 和 `compatibility dual-run`，具体端口仍由 composition
-factory 显式注入。
+`release publish`、`external probe` 和 `compatibility dual-run`，具体端口由
+`ProductionApplicationServices.create` 和 `build_production_composition_root` 显式注入；没有真实外部配置时仍会
+拒绝执行或返回 `PENDING`。
 
 外部探针位于 `integrations.probes`：SVN、Unity、Jenkins、Secrets 和 ObjectStore/CDN
 均执行真实注入端口调用，并写入不含秘密的 JSON 证据；没有真实地址、凭据、工具或历史输入

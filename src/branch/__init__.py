@@ -1,8 +1,9 @@
 """branch 纯 Python 公开 API。
 
 本包聚合不可变分支模型、严格配置解析、svn:externals 解析/重写、只读前置校验、
-BranchPlan 和规范 codec。导入本包只加载类型与纯函数，不访问 SVN、文件系统或秘密
-服务；真正的复制与 apply 能力仍留给后续计划和受控管理端口。
+BranchPlan、规范 codec 和显式 svnmucc apply 端口。导入本包只加载类型与纯函数，不
+访问 SVN、文件系统或秘密服务；写操作必须由调用方显式提供 ProcessRunner、工作目录
+和审计日志根后执行。
 """
 
 from branch.config import (
@@ -32,6 +33,7 @@ from branch.externals import (
     rewrite_external_plan,
     rewrite_externals,
 )
+from branch.apply import BranchApplyResult, SvnBranchMutationApplier
 from branch.model import (
     BranchCopy,
     BranchResult,
@@ -113,4 +115,6 @@ __all__ = [
     "BranchPlanCodec",
     "BranchPlanCodecError",
     "BranchPlanFactory",
+    "BranchApplyResult",
+    "SvnBranchMutationApplier",
 ]

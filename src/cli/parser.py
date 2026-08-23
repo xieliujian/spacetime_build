@@ -38,6 +38,25 @@ def _leaf(
     return parser
 
 
+def _add_version_arguments(parser: argparse.ArgumentParser) -> None:
+    """为版本预览/分配命令添加显式版本流和显示版本参数。"""
+    parser.add_argument("--destination-id", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--object-store-namespace", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--version-entry-key", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--major", type=int, default=argparse.SUPPRESS)
+    parser.add_argument("--minor", type=int, default=argparse.SUPPRESS)
+
+
+def _add_formal_release_arguments(parser: argparse.ArgumentParser) -> None:
+    """为正式版本构建添加清单、产物和入口 CAS 参数。"""
+    parser.add_argument("--manifest-path", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--artifact-root", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--variant", choices=("main", "low"), default=argparse.SUPPRESS)
+    parser.add_argument("--file-list-base-url", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--expected-generation", type=int, default=argparse.SUPPRESS)
+    parser.add_argument("--expected-entry-digest", type=str, default=argparse.SUPPRESS)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """构造完整命令树。
 
@@ -62,12 +81,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     release = groups.add_parser("release", help="发布命令")
     release_sub = release.add_subparsers(dest="release_command", required=True)
-    _leaf(release_sub, "build", "release build", "构建并准备正式版本")
+    release_build = _leaf(release_sub, "build", "release build", "构建并准备正式版本")
+    _add_version_arguments(release_build)
+    _add_formal_release_arguments(release_build)
     _leaf(release_sub, "publish", "release publish", "发布 ReleaseBundle")
     version = release_sub.add_parser("version", help="版本号命令")
     version_sub = version.add_subparsers(dest="version_command", required=True)
-    _leaf(version_sub, "preview", "release version preview", "预览下一个 FileListNo")
-    _leaf(version_sub, "allocate", "release version allocate", "预留正式 FileListNo")
+    preview = _leaf(version_sub, "preview", "release version preview", "预览下一个 FileListNo")
+    _add_version_arguments(preview)
+    allocate = _leaf(version_sub, "allocate", "release version allocate", "预留正式 FileListNo")
+    _add_version_arguments(allocate)
     _leaf(release_sub, "upload", "release upload", "上传正式版本不可变对象")
     _leaf(release_sub, "activate", "release activate", "CAS 激活版本入口")
     _leaf(release_sub, "rollback", "release rollback", "回滚到历史 ReleaseBundle")
@@ -84,7 +107,20 @@ def build_parser() -> argparse.ArgumentParser:
 
     external = groups.add_parser("external", help="外部系统探针")
     external_sub = external.add_subparsers(dest="external_command", required=True)
-    _leaf(external_sub, "probe", "external probe", "执行 SVN/Unity/Jenkins/Secrets/CDN 探针")
+    external_probe = _leaf(
+        external_sub, "probe", "external probe", "执行 SVN/Unity/Jenkins/Secrets/CDN 探针"
+    )
+    external_probe.add_argument("--svn-url", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--svn-revision", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--probe-destination", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--unity-executable", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--unity-project", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--unity-method", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--unity-log", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--jenkins-job", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--secret-ref", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--object-store-probe-key", type=str, default=argparse.SUPPRESS)
+    external_probe.add_argument("--evidence-path", type=str, default=argparse.SUPPRESS)
 
     compatibility = groups.add_parser("compatibility", help="旧客户端兼容验收")
     compatibility_sub = compatibility.add_subparsers(dest="compatibility_command", required=True)

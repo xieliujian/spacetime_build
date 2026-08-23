@@ -8,8 +8,10 @@ import pytest
 
 from configuration.model import SecretRef
 from integrations.factory import IntegrationFactory
+from integrations.jenkins import JenkinsJobClient
 from integrations.storage import HttpObjectStore
 from integrations.svn import SvnSourceProvider
+from integrations.unity import UnityBatchRunner
 from ports.http import HttpRequest, HttpResponse
 from ports.process import ProcessRequest, ProcessResult
 
@@ -84,3 +86,18 @@ def test_local_factory_rejects_partial_svn_configuration(tmp_path: Path) -> None
             tmp_path / "objects",
             source_executable=tmp_path / "svn.exe",
         )
+
+
+def test_remote_factory_binds_unity_and_optional_jenkins_clients() -> None:
+    """验证生产组合根可以一次性装配 Unity runner 和 Jenkins client。"""
+    transport = _Transport()
+
+    factory = IntegrationFactory.remote(
+        _ProcessRunner(),
+        "https://cdn.example/objects",
+        http_transport=transport,
+        jenkins_base_url="https://jenkins.example",
+    )
+
+    assert isinstance(factory.unity_runner, UnityBatchRunner)
+    assert isinstance(factory.ci_client, JenkinsJobClient)

@@ -697,6 +697,7 @@ class LocalProcessRunner(ProcessRunner):
                 shell=False,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             )
+            self._attach_windows_job(process)
         else:
             process = subprocess.Popen(
                 arguments,
@@ -720,6 +721,150 @@ class LocalProcessRunner(ProcessRunner):
                     pass
                 raise
         return process
+
+    @staticmethod
+    def _attach_windows_job(process: subprocess.Popen[bytes]) -> None:
+        """为 Windows 根进程绑定自动回收后代的 Job Object。
+
+        参数：
+            process: 刚由本 runner 启动的根进程。
+
+        返回：
+            无；绑定成功时把原生 job handle 附加到当前 ``Popen`` 对象。
+
+        异常、约束与副作用：
+            只在 Windows 上调用系统 Job Object API。当前环境若禁止创建或绑定
+            Job Object，则安静降级到后续的固定 ``taskkill.exe`` 路径；不让辅助能力
+            影响普通启动结果。
+        """
+        if os.name != "nt":
+            return
+        try:
+            import ctypes
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
+            kernel32.CreateJobObjectW.restype = ctypes.c_void_p
+            kernel32.AssignProcessToJobObject.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+            kernel32.AssignProcessToJobObject.restype = ctypes.c_int
+            kernel32.SetInformationJobObject.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_int,
+                ctypes.c_void_p,
+                ctypes.c_uint32,
+            ]
+            kernel32.SetInformationJobObject.restype = ctypes.c_int
+            kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+            kernel32.CloseHandle.restype = ctypes.c_int
+
+            class BasicLimitInformation(ctypes.Structure):
+                """Job Object 基础限制结构。"""
+
+                _fields_ = [
+                    ("per_process_user_time_limit", ctypes.c_longlong),
+                    ("per_job_user_time_limit", ctypes.c_longlong),
+                    ("limit_flags", ctypes.c_uint32),
+                    ("minimum_working_set_size", ctypes.c_size_t),
+                    ("maximum_working_set_size", ctypes.c_size_t),
+                    ("active_process_limit", ctypes.c_uint32),
+                    ("affinity", ctypes.c_size_t),
+                    ("priority_class", ctypes.c_uint32),
+                    ("scheduling_class", ctypes.c_uint32),
+                ]
+
+            class IoCounters(ctypes.Structure):
+                """Job Object I/O 统计结构。"""
+
+                _fields_ = [
+                    ("read_operation_count", ctypes.c_ulonglong),
+                    ("write_operation_count", ctypes.c_ulonglong),
+                    ("other_operation_count", ctypes.c_ulonglong),
+                    ("read_transfer_count", ctypes.c_ulonglong),
+                    ("write_transfer_count", ctypes.c_ulonglong),
+                    ("other_transfer_count", ctypes.c_ulonglong),
+                ]
+
+            class ExtendedLimitInformation(ctypes.Structure):
+                """启用关闭即杀全树标志所需的扩展结构。"""
+
+                _fields_ = [
+                    ("basic_limit_information", BasicLimitInformation),
+                    ("io_info", IoCounters),
+                    ("process_memory_limit", ctypes.c_size_t),
+                    ("job_memory_limit", ctypes.c_size_t),
+                    ("peak_process_memory_used", ctypes.c_size_t),
+                    ("peak_job_memory_used", ctypes.c_size_t),
+                ]
+
+            raw_job = kernel32.CreateJobObjectW(None, None)
+            if not raw_job:
+                return
+            job_handle = ctypes.c_void_p(raw_job)
+            limits = ExtendedLimitInformation()
+            limits.basic_limit_information.limit_flags = 0x2000
+            configured = kernel32.SetInformationJobObject(
+                job_handle,
+                9,
+                ctypes.byref(limits),
+                ctypes.sizeof(limits),
+            )
+            process_handle = getattr(process, "_handle", None)
+            assigned = configured and process_handle not in (None, 0)
+            if assigned:
+                assigned = bool(
+                    kernel32.AssignProcessToJobObject(job_handle, ctypes.c_void_p(process_handle))
+                )
+            if not assigned:
+                kernel32.CloseHandle(job_handle)
+                return
+            setattr(process, "_spacetime_job_handle", int(raw_job))
+        except (AttributeError, OSError, TypeError, ValueError):
+            return
+
+    @staticmethod
+    def _terminate_windows_job(process: subprocess.Popen[bytes]) -> str | None:
+        """请求终止当前根进程所属 Job Object 并有界回收父句柄。"""
+        job_handle = getattr(process, "_spacetime_job_handle", None)
+        if job_handle in (None, 0):
+            return None
+        try:
+            import ctypes
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.TerminateJobObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+            kernel32.TerminateJobObject.restype = ctypes.c_int
+            kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+            kernel32.CloseHandle.restype = ctypes.c_int
+            if not kernel32.TerminateJobObject(ctypes.c_void_p(job_handle), 1):
+                return "Windows Job Object 终止请求失败"
+            process.wait(timeout=2.0)
+            if process.poll() is None:
+                return "Windows Job Object 终止后父进程仍在运行"
+            return None
+        except subprocess.TimeoutExpired:
+            return "Windows Job Object 终止后父进程回收超时"
+        except (AttributeError, OSError, TypeError, ValueError) as exc:
+            return _combine_diagnostics("Windows Job Object 终止失败", _safe_error_text(exc))
+
+    @staticmethod
+    def _release_windows_job(process: subprocess.Popen[bytes]) -> None:
+        """终止并释放仍由 runner 持有的 Windows Job Object。"""
+        job_handle = getattr(process, "_spacetime_job_handle", None)
+        if job_handle in (None, 0):
+            return
+        setattr(process, "_spacetime_job_handle", None)
+        try:
+            import ctypes
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.TerminateJobObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+            kernel32.TerminateJobObject.restype = ctypes.c_int
+            kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+            kernel32.CloseHandle.restype = ctypes.c_int
+            kernel32.TerminateJobObject(ctypes.c_void_p(job_handle), 1)
+            kernel32.CloseHandle(ctypes.c_void_p(job_handle))
+        except (AttributeError, OSError, TypeError, ValueError):
+            return
 
     def _run_spawned(
         self,
@@ -858,9 +1003,13 @@ class LocalProcessRunner(ProcessRunner):
             return result
         finally:
             # 所有正常分支已关闭资源；异常分支继续做幂等关闭与父进程兜底回收。
+            readers_alive = any(thread.is_alive() for thread in threads)
             for pipe in pipes:
                 try:
-                    pipe.close()
+                    if readers_alive:
+                        self._schedule_reader_pipe_interrupt(pipe)
+                    else:
+                        pipe.close()
                 except BaseException:
                     pass
             self._close_writers([stdout_writer, stderr_writer])
@@ -870,6 +1019,7 @@ class LocalProcessRunner(ProcessRunner):
                     process.wait(timeout=self._termination_grace_seconds)
                 except BaseException:
                     pass
+            self._release_windows_job(process)
 
     def _wait_for_trigger(
         self,
@@ -923,6 +1073,8 @@ class LocalProcessRunner(ProcessRunner):
         """
         try:
             if os.name == "nt":
+                if getattr(process, "_spacetime_job_handle", None) not in (None, 0):
+                    return self._terminate_windows_job(process)
                 system_root = os.environ.get("SystemRoot")
                 if not system_root:
                     return "SystemRoot 未配置，无法定位 taskkill.exe"
@@ -1103,7 +1255,7 @@ class LocalProcessRunner(ProcessRunner):
         if any(thread.is_alive() for thread in threads):
             for pipe in pipes:
                 try:
-                    pipe.close()
+                    self._schedule_reader_pipe_interrupt(pipe)
                 except BaseException as exc:
                     errors.append(_safe_error_text(exc))
             second_deadline = time.monotonic() + self._termination_grace_seconds
@@ -1119,6 +1271,53 @@ class LocalProcessRunner(ProcessRunner):
         if errors:
             return _combine_diagnostics("输出 reader 收尾失败", *errors)
         return None
+
+    @classmethod
+    def _schedule_reader_pipe_interrupt(cls, pipe: BinaryIO) -> None:
+        """在后台尽力中断一个仍被同步读取的 Windows 管道。
+
+        ``CloseHandle`` 在部分 Windows/Python 组合上可能等待底层同步读取返回，
+        因而不能直接在构建线程调用。后台线程是 daemon，仅负责这个一次性最佳努力
+        操作；主线程仍按固定宽限继续返回结果，避免进程树已终止但构建 API 无限阻塞。
+
+        参数：
+            pipe: reader 当前持有的父侧输出管道。
+
+        返回：
+            无；后台线程创建失败时向调用方抛出异常，由收尾逻辑转换为诊断。
+
+        异常、约束与副作用：
+            只创建 daemon 线程并操作传入的精确管道句柄，不访问其他进程或路径。
+        """
+        threading.Thread(
+            target=cls._interrupt_reader_pipe,
+            args=(pipe,),
+            name="process-reader-interrupt",
+            daemon=True,
+        ).start()
+
+    @staticmethod
+    def _interrupt_reader_pipe(pipe: BinaryIO) -> None:
+        """在 Windows reader 持有 Python BufferedReader 锁时中断底层句柄。
+
+        ``BufferedReader.close`` 可能等待同一线程中尚未返回的同步 read，导致进程
+        已终止但收尾线程无法退出。Windows 下直接关闭精确 CRT 描述符，让 reader
+        得到 EOF/OSError 并自行设置完成事件；POSIX 继续使用正常 close 语义。
+        """
+        if os.name != "nt":
+            pipe.close()
+            return
+        try:
+            import ctypes
+            import msvcrt
+
+            handle = msvcrt.get_osfhandle(pipe.fileno())
+            if handle == -1:
+                return
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.CloseHandle(ctypes.c_void_p(handle))
+        except (OSError, ValueError, AttributeError):
+            return
 
     def _wait_for_threads(
         self,

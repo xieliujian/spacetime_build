@@ -10,11 +10,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from integrations.jenkins import JenkinsJobClient
 from integrations.http import UrllibHttpTransport
 from integrations.secrets import ControlledFileSecretProvider, EnvironmentSecretProvider
 from integrations.storage import FileSystemObjectStore, HttpObjectStore
 from integrations.svn import SvnSourceProvider
+from integrations.unity import UnityBatchRunner
 from integrations.workspace import LocalWorkspaceProvider
+from ports.ci import CiJobClient
 from ports.http import HttpTransport
 from ports.process import ProcessRunner
 from ports.secrets import SecretProvider
@@ -34,6 +37,8 @@ class IntegrationFactory:
     secret_provider: SecretProvider
     object_store: ObjectStore
     source_provider: SourceProvider | None = None
+    ci_client: CiJobClient | None = None
+    unity_runner: UnityBatchRunner | None = None
 
     @classmethod
     def local(
@@ -45,11 +50,19 @@ class IntegrationFactory:
         source_executable: Path | None = None,
         source_temp_root: Path | None = None,
         source_credential: SecretRef | None = None,
+        jenkins_base_url: str | None = None,
+        jenkins_credential: SecretRef | None = None,
     ) -> "IntegrationFactory":
         """创建本地对象存储、工作区、HTTP、凭据和可选 SVN 源码组合。"""
         secret_provider: SecretProvider = EnvironmentSecretProvider()
         if secret_root is not None:
             secret_provider = ControlledFileSecretProvider(str(secret_root))
+        ci_client = _build_jenkins_client(
+            jenkins_base_url,
+            jenkins_credential,
+            UrllibHttpTransport(),
+            secret_provider,
+        )
         return cls(
             process_runner=process_runner,
             http_transport=UrllibHttpTransport(),
@@ -63,6 +76,8 @@ class IntegrationFactory:
                 source_temp_root,
                 source_credential,
             ),
+            ci_client=ci_client,
+            unity_runner=UnityBatchRunner(process_runner),
         )
 
     @classmethod
@@ -77,12 +92,20 @@ class IntegrationFactory:
         source_executable: Path | None = None,
         source_temp_root: Path | None = None,
         source_credential: SecretRef | None = None,
+        jenkins_base_url: str | None = None,
+        jenkins_credential: SecretRef | None = None,
     ) -> "IntegrationFactory":
         """显式创建 HTTP 对象存储和可选 SVN 组合，不在默认 CLI 中自动启用。"""
         secret_provider: SecretProvider = EnvironmentSecretProvider()
         if secret_root is not None:
             secret_provider = ControlledFileSecretProvider(str(secret_root))
         active_transport = http_transport if http_transport is not None else UrllibHttpTransport()
+        ci_client = _build_jenkins_client(
+            jenkins_base_url,
+            jenkins_credential,
+            active_transport,
+            secret_provider,
+        )
         return cls(
             process_runner=process_runner,
             http_transport=active_transport,
@@ -101,6 +124,8 @@ class IntegrationFactory:
                 source_temp_root,
                 source_credential,
             ),
+            ci_client=ci_client,
+            unity_runner=UnityBatchRunner(process_runner),
         )
 
 
@@ -120,6 +145,27 @@ def _build_source_provider(
         executable,
         temp_root,
         process_runner,
+        credential=credential,
+        secret_provider=secret_provider if credential is not None else None,
+    )
+
+
+def _build_jenkins_client(
+    base_url: str | None,
+    credential: SecretRef | None,
+    transport: HttpTransport,
+    secret_provider: SecretProvider,
+) -> CiJobClient | None:
+    """按显式 URL 和秘密引用装配可选 Jenkins client。"""
+    if base_url is None and credential is None:
+        return None
+    if base_url is None:
+        raise ValueError("jenkins_base_url 和 jenkins_credential 必须成对提供")
+    if credential is not None and not isinstance(credential, SecretRef):
+        raise TypeError("jenkins_credential 必须是 SecretRef 或 None")
+    return JenkinsJobClient(
+        base_url,
+        transport,
         credential=credential,
         secret_provider=secret_provider if credential is not None else None,
     )
