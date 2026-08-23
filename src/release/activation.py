@@ -285,10 +285,38 @@ def verify_release_bundle(
                 f"远端对象哈希与必要对象不匹配: expected={sha256!r}, remote={remote_hash!r}"
             )
 
-    return VerifiedReleaseBundle(
+    return bind_verified_release_bundle(
         bundle_id=bundle.bundle_id,
         required_objects_digest=digest,
         verified_objects_digest=digest,
+    )
+
+
+def bind_verified_release_bundle(
+    *,
+    bundle_id: str,
+    required_objects_digest: str,
+    verified_objects_digest: str,
+) -> VerifiedReleaseBundle:
+    """在严格 codec 已验证字段后绑定不可伪造验证凭证。"""
+    values = {
+        "bundle_id": bundle_id,
+        "required_objects_digest": required_objects_digest,
+        "verified_objects_digest": verified_objects_digest,
+    }
+    for name, value in values.items():
+        if (
+            not isinstance(value, str)
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            raise PublishError(f"{name} 必须是 64 位小写 SHA256")
+    if required_objects_digest != verified_objects_digest:
+        raise PublishError("verified_objects_digest 必须等于 required_objects_digest")
+    return VerifiedReleaseBundle(
+        bundle_id=bundle_id,
+        required_objects_digest=required_objects_digest,
+        verified_objects_digest=verified_objects_digest,
         _factory_token=_VERIFIED_RELEASE_BUNDLE_TOKEN,
     )
 
