@@ -7,9 +7,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
+from pathlib import Path
 import sys
 
 from cli.bootstrap import build_composition_root
+from cli.command_logging import build_default_command_log_runner
 from cli.commands import CommandDispatcher, CommandServices
 from cli.exit_codes import exit_code_for
 from cli.output import render_error, render_success
@@ -35,6 +38,7 @@ def main(
         结果输出到 stdout，错误输出到 stderr。
     """
     parser = build_parser()
+    active_services: CommandServices | None = None
     try:
         args = parser.parse_args(list(argv) if argv is not None else None)
     except SystemExit as exc:
@@ -42,22 +46,54 @@ def main(
     json_mode = bool(getattr(args, "json", False))
     try:
         active_services = services if services is not None else build_composition_root(None)
+        if active_services.log_runner is None:
+            log_root = Path(getattr(args, "log_root", None) or "logs")
+            active_services = replace(
+                active_services,
+                log_runner=build_default_command_log_runner(log_root, console_stream=sys.stderr),
+            )
         value = CommandDispatcher(active_services).dispatch(args)
-        print(render_success(value, json_mode=json_mode))
+        print(
+            render_success(
+                value,
+                json_mode=json_mode,
+                run_id=getattr(args, "run_id", None),
+                log_locator=_log_locator(active_services),
+            )
+        )
         return 0
     except KeyboardInterrupt as exc:
         print(
-            render_error(exc, code=9, json_mode=json_mode, run_id=getattr(args, "run_id", None)),
+            render_error(
+                exc,
+                code=9,
+                json_mode=json_mode,
+                run_id=getattr(args, "run_id", None),
+                log_locator=_log_locator(active_services),
+            ),
             file=sys.stderr,
         )
         return 9
     except BaseException as exc:
         code = exit_code_for(exc)
         print(
-            render_error(exc, code=code, json_mode=json_mode, run_id=getattr(args, "run_id", None)),
+            render_error(
+                exc,
+                code=code,
+                json_mode=json_mode,
+                run_id=getattr(args, "run_id", None),
+                log_locator=_log_locator(active_services),
+            ),
             file=sys.stderr,
         )
         return code
+
+
+def _log_locator(services: CommandServices | None) -> str | None:
+    """从已装配的命令日志 runner 读取最近一次主日志定位。"""
+    if services is None or services.log_runner is None:
+        return None
+    return services.log_runner.last_log_locator
 
 
 if __name__ == "__main__":  # pragma: no cover - 仅进程入口路径

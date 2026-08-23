@@ -9,15 +9,21 @@ from __future__ import annotations
 from argparse import Namespace
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import cast
 
 from core.errors import ConfigurationError
+from observability.runtime import CommandLogRunner
 
 CommandHandler = Callable[[Namespace], object]
 
 
 @dataclass(frozen=True, slots=True)
 class CommandServices:
-    """各 CLI 命令的可选 application handler 注册表。"""
+    """各 CLI 命令 handler 和可选统一日志 middleware 的注册表。
+
+    ``log_runner`` 由 composition root 显式注入；为空时保持纯路由行为，便于不带
+    文件副作用的 parser 单元测试。
+    """
 
     plan: CommandHandler | None = None
     resource_build: CommandHandler | None = None
@@ -34,10 +40,11 @@ class CommandServices:
     run_status: CommandHandler | None = None
     run_cancel: CommandHandler | None = None
     run_resume: CommandHandler | None = None
+    log_runner: CommandLogRunner | None = None
 
 
 class CommandDispatcher:
-    """按固定 command 名调用唯一注入 handler。"""
+    """按固定 command 名调用唯一注入 handler，并可统一包裹运行日志。"""
 
     def __init__(self, services: CommandServices) -> None:
         """保存不可变 handler 注册表。"""
@@ -83,7 +90,13 @@ class CommandDispatcher:
         handler = handlers.get(command)
         if handler is None:
             raise ConfigurationError(f"命令未装配 handler: {command!r}")
-        return handler(args)
+        if self._services.log_runner is None:
+            return handler(args)
+        return self._services.log_runner.run(
+            command,
+            args,
+            cast(Callable[[object], object], handler),
+        )
 
 
 __all__ = ["CommandDispatcher", "CommandHandler", "CommandServices"]

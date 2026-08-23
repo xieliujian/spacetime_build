@@ -23,7 +23,8 @@
 - [x] 本地 ObjectStore put/verify/CAS generation 逐阶段回执；
 - [ ] Android、iOS、Windows 平台实际产物和验证结果；
 - [ ] 取消、恢复、回滚和同 run 并发冲突的外部探针；
-- [ ] 完整命令、stdout/stderr、退出码、日志 locator 和复核人。
+- [x] 本地默认 CLI logger 已覆盖命令开始、handler 阶段、stdout/stderr/Unity locator、
+  退出状态和 `build.log` 汇总；真实服务组合、外部日志归档和复核人仍待受控环境验收。
 
 在上述外部能力和隔离探针完成前，`spacetime-build` 只能作为显式注入服务的纯 Python
 编排入口，不能标记真实构建、发布或平台打包命令可用。

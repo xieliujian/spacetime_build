@@ -439,6 +439,7 @@ def open_run_handlers(
     console_stream: TextIO,
     console_level: LogLevel,
     file_level: LogLevel,
+    secret_values: tuple[str, ...] = (),
 ) -> tuple[
     CompositeLogger,
     ExternalStreamWriter,
@@ -452,6 +453,7 @@ def open_run_handlers(
         console_stream: 调用方拥有且不会由本函数关闭的控制台文本流。
         console_level: 控制台最低输出级别。
         file_level: 主日志文件最低输出级别。
+        secret_values: 需要在外部 stdout/stderr/Unity 流中持续脱敏的秘密值元组。
 
     返回：
         ``(CompositeLogger, stdout_writer, stderr_writer, unity_writer)``。组合 logger
@@ -461,7 +463,8 @@ def open_run_handlers(
         参数非法、目录层级含符号链接/junction/reparse point、目标碰撞或 I/O 失败
         时直接抛出异常。函数会创建 ``paths.directory`` 及缺失父目录，但不删除目
         录；main、stdout、stderr、unity 按顺序排他创建。任一步失败时关闭已打开
-        资源并只删除本次调用成功创建的精确文件，不配置全局 logging。
+        资源并只删除本次调用成功创建的精确文件，不配置全局 logging。秘密值只
+        进入外部流的流式脱敏器，不会保存到 handler 属性或主日志。
     """
     paths_object = cast(object, paths)
     if not isinstance(paths_object, LogPaths):
@@ -481,15 +484,15 @@ def open_run_handlers(
         opened_handlers.append(main_handler)
         created_paths.append(paths_object.main)
 
-        stdout_writer = ExternalStreamWriter(paths_object.stdout)
+        stdout_writer = ExternalStreamWriter(paths_object.stdout, secret_values)
         opened_handlers.append(stdout_writer)
         created_paths.append(paths_object.stdout)
 
-        stderr_writer = ExternalStreamWriter(paths_object.stderr)
+        stderr_writer = ExternalStreamWriter(paths_object.stderr, secret_values)
         opened_handlers.append(stderr_writer)
         created_paths.append(paths_object.stderr)
 
-        unity_writer = ExternalStreamWriter(paths_object.unity)
+        unity_writer = ExternalStreamWriter(paths_object.unity, secret_values)
         opened_handlers.append(unity_writer)
         created_paths.append(paths_object.unity)
 

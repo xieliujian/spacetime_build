@@ -57,9 +57,26 @@ def _safe_value(value: object) -> object:
     return redact_text(type(value).__name__)
 
 
-def render_success(value: object, *, json_mode: bool) -> str:
-    """渲染成功摘要，不包含调试 traceback。"""
+def render_success(
+    value: object,
+    *,
+    json_mode: bool,
+    run_id: str | None = None,
+    log_locator: str | None = None,
+) -> str:
+    """渲染成功摘要，并可附加运行 ID 与主日志定位。"""
     safe = _safe_value(value)
+    if run_id is not None or log_locator is not None:
+        if isinstance(safe, dict):
+            safe_mapping = cast(dict[str, object], safe)
+            payload = dict(safe_mapping)
+        else:
+            payload = {"result": safe}
+        if run_id is not None:
+            payload["run_id"] = redact_text(run_id)
+        if log_locator is not None:
+            payload["log_locator"] = redact_text(log_locator)
+        safe = payload
     if json_mode:
         return json.dumps(safe, ensure_ascii=False, sort_keys=True)
     if isinstance(safe, dict):

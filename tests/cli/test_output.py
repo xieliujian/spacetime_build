@@ -22,3 +22,22 @@ def test_human_success_is_compact_and_redacted() -> None:
     text = render_success({"run_id": "run-1", "token": "super-secret"}, json_mode=False)
     assert "run-1" in text
     assert "super-secret" not in text
+
+
+def test_success_can_expose_safe_log_locator() -> None:
+    """Given 成功日志定位，When 渲染，Then 人类和 JSON 输出都包含 locator。"""
+    human = render_success(
+        {"state": "SUCCEEDED"},
+        json_mode=False,
+        run_id="run-1",
+        log_locator="logs/build-1/plan/run-1/main.log",
+    )
+    structured = render_success(
+        {"state": "SUCCEEDED"},
+        json_mode=True,
+        run_id="run-1",
+        log_locator="logs/build-1/plan/run-1/main.log",
+    )
+
+    assert "log_locator:" in human
+    assert "logs/build-1/plan/run-1/main.log" in structured

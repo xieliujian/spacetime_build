@@ -19,6 +19,7 @@ from observability.handlers import (
     ExternalStreamWriter,
     open_run_handlers,
 )
+from observability.aggregation import BuildLogAssembler, BuildLogCollector, BuildLogEntry
 from observability.logger import (
     CompositeLogger,
     LogEvent,
@@ -34,9 +35,21 @@ from observability.redaction import (
     redact_environment,
     redact_text,
 )
+from observability.retention import (
+    LogRetentionCleaner,
+    LogRunMetadata,
+    RetentionFailure,
+    RetentionReport,
+    RetentionSkip,
+)
+from observability.runtime import CommandLogRunner, RunLogResult, RunLogSession, RunOutcome
 
 __all__ = [
     "BuildFailure",
+    "BuildLogAssembler",
+    "BuildLogCollector",
+    "BuildLogEntry",
+    "CommandLogRunner",
     "CompositeLogger",
     "ConsoleHandler",
     "ErrorCode",
@@ -48,8 +61,16 @@ __all__ = [
     "LogHandler",
     "LogLevel",
     "LogPaths",
+    "LogRetentionCleaner",
+    "LogRunMetadata",
     "Logger",
     "MIN_STREAMING_PENDING_CHARS",
+    "RetentionFailure",
+    "RetentionReport",
+    "RetentionSkip",
+    "RunLogResult",
+    "RunLogSession",
+    "RunOutcome",
     "StreamingRedactor",
     "build_failure_from_exception",
     "build_log_paths",

@@ -21,7 +21,9 @@
 正式版本制作的第一层基础设施和第二层自动化适配器已经实现并通过对应目标测试：
 
 - `configuration`：不可变强类型配置、三层 TOML 合并、严格校验、确定性快照和编辑器服务 API；
-- `observability`：稳定错误载体、日志上下文、流式凭据脱敏、统一文本日志和排他文件输出；
+- `observability`：稳定错误载体、运行级生命周期/阶段日志、流式凭据脱敏、统一文本日志、
+  stdout/stderr/Unity 独立输出、原子 `build.log` 汇总、维护锁和保留清理；CLI 默认在显式
+  服务装配后自动接入命令日志 middleware；
 - `ports.process`：进程请求、结果、取消、输出 sink 和未来秘密租约的端口契约；
 - `integrations.process`：不经 shell 的本地进程执行、双流捕获、超时、取消和完整进程树终止。
 - 第二层：HTTP、Secrets、Workspace、SVN 读取、Unity、Jenkins、ObjectStore/CAS 的端口与
