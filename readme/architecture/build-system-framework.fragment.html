@@ -1,0 +1,400 @@
+<div id="bsp-arch">
+<style>
+  #bsp-arch .bsp-head{display:flex;gap:16px;justify-content:space-between;align-items:flex-end;flex-wrap:wrap}
+  #bsp-arch .bsp-head h1{margin:0}
+  #bsp-arch .bsp-band{margin-top:14px;position:relative;z-index:1}
+  #bsp-arch .bsp-band-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:6px}
+  #bsp-arch .bsp-band-title{font-weight:500}
+  #bsp-arch .bsp-legend{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:12px 0 4px}
+  #bsp-arch .bsp-legend span{display:inline-flex;align-items:center;gap:6px}
+  #bsp-arch .bsp-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+  #bsp-arch .bsp-tile-inner{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;min-width:0;width:100%}
+  #bsp-arch .bsp-tile-name{display:flex;align-items:center;gap:6px;font-weight:500}
+  #bsp-arch .bsp-tile-meta{font-size:12px;color:var(--muted-foreground)}
+  #bsp-arch #bsp-diagram{position:relative}
+  #bsp-arch #bsp-edges{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:0}
+  #bsp-arch .bsp-detail-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  #bsp-arch .bsp-detail-head h2{margin:0}
+  #bsp-arch .bsp-kv{display:flex;gap:8px;flex-wrap:wrap;align-items:baseline;margin-top:6px}
+  #bsp-arch .bsp-kv-label{min-width:48px;color:var(--muted-foreground)}
+  #bsp-arch .bsp-flow-status{color:var(--muted-foreground);font-size:12px}
+  #bsp-arch .bsp-caption{color:var(--muted-foreground);font-size:12px;margin:8px 0 6px}
+  @media (max-width: 560px) {
+    #bsp-arch #bsp-edges{display:none}
+  }
+</style>
+
+<div class="bsp-head">
+  <div>
+    <h1>构建系统框架</h1>
+    <div class="text-small text-muted">16 个顶级包 · 201 个源文件 · 33,773 行 · 916 passed / 4 skipped</div>
+  </div>
+</div>
+<div class="nav nav-pills" role="tablist" aria-label="架构视图" style="margin-top:10px">
+    <button class="nav-link active" id="bsp-tab-layers" role="tab" aria-controls="bsp-panel-layers" aria-selected="true" type="button">分层</button>
+    <button class="nav-link" id="bsp-tab-flow" role="tab" aria-controls="bsp-panel-flow" aria-selected="false" type="button">流水线</button>
+    <button class="nav-link" id="bsp-tab-modules" role="tab" aria-controls="bsp-panel-modules" aria-selected="false" type="button">模块</button>
+</div>
+
+<div id="bsp-panel-layers" role="tabpanel" aria-labelledby="bsp-tab-layers">
+  <div class="bsp-legend text-small">
+    <span><span class="bsp-dot" style="background:var(--green)" aria-hidden="true"></span>已接入</span>
+    <span><span class="bsp-dot" style="background:var(--yellow)" aria-hidden="true"></span>部分接入</span>
+    <span><span class="bsp-dot" style="background:var(--orange)" aria-hidden="true"></span>仅库可用</span>
+    <span class="text-muted">线宽＝导入处数，红色＝越层依赖；点击模块查看明细</span>
+  </div>
+  <div id="bsp-diagram">
+    <svg id="bsp-edges" width="0" height="0" aria-hidden="true"></svg>
+  </div>
+  <div id="bsp-detail" class="card" aria-live="polite" style="margin-top:12px"></div>
+</div>
+
+<div id="bsp-panel-flow" role="tabpanel" aria-labelledby="bsp-tab-flow" hidden>
+  <div class="bsp-caption">构建与发布分离：同一份 BuildManifest 可生成多个 ReleaseBundle</div>
+  <div id="bsp-flow-table"></div>
+</div>
+
+<div id="bsp-panel-modules" role="tabpanel" aria-labelledby="bsp-tab-modules" hidden>
+  <div class="bsp-caption">按代码统计：文件数、行数与测试数来自当前工作区</div>
+  <div id="bsp-module-table"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.getElementById("bsp-arch");
+  if (!root) return;
+
+  var STATUS = {
+    wired: { label: "已接入", color: "var(--green)" },
+    partial: { label: "部分接入", color: "var(--yellow)" },
+    library: { label: "仅库可用", color: "var(--orange)" }
+  };
+
+  var PKGS = {
+    cli: { name: "cli", layer: "entry", status: "wired", files: 12, loc: 1601, tests: 49,
+      role: "命令行边界：参数树、TOML 覆盖链、生产 handler、退出码与脱敏输出",
+      pending: "branch 与 art 尚未注册命令" },
+    application: { name: "application", layer: "orchestration", status: "wired", files: 10, loc: 1442, tests: 25,
+      role: "用例编排与生产组合根：资源配置构建、正式发布、包体、运行记录、兼容验收",
+      pending: "branch 与 art 未装配；run resume 依赖外部注入恢复动作",
+      warn: "依赖方向待收敛：application → cli（1 处）" },
+    core: { name: "core", layer: "domain", status: "wired", files: 11, loc: 2123, tests: 32,
+      role: "领域内核：产物模型、TaskPlan、BuildGraph、执行器、恢复 Frontier、BuildManifest",
+      pending: "无本地缺口" },
+    resource: { name: "resource", layer: "domain", status: "partial", files: 25, loc: 4471, tests: 74,
+      role: "资源构建公共层：资源模型、任务契约、产出校验、七类 Unity builder 工厂",
+      pending: "真实项目的分组、压缩、图集与材质规则，以及 Unity 产物证据" },
+    release: { name: "release", layer: "domain", status: "partial", files: 27, loc: 4311, tests: 59,
+      role: "发布领域：快照合并、Redirect、分包、上传计划、CAS 激活与回滚",
+      pending: "真实 publisher / verifier 与上传中断 reconcile",
+      warn: "依赖方向待收敛：release → compatibility（5 处）" },
+    package: { name: "package", layer: "domain", status: "partial", files: 35, loc: 3852, tests: 101,
+      role: "客户端包体：请求与清单、工程准备、Android / iOS / Windows 平台切片",
+      pending: "Gradle / Xcode / 安装签名执行；平台 builder 未接入组合根" },
+    services: { name: "services", layer: "domain", status: "partial", files: 10, loc: 1050, tests: 18,
+      role: "IL2CPP 归档、缓存键、保护计划，以及本地与 CI 执行器",
+      pending: "真实 Unity / CI 节点执行" },
+    sdk: { name: "sdk", layer: "domain", status: "partial", files: 9, loc: 737, tests: 14,
+      role: "SDK descriptor / catalog、平台规划、白名单 apply 与产物校验",
+      pending: "真实渠道脚本联动" },
+    branch: { name: "branch", layer: "domain", status: "library", files: 8, loc: 2627, tests: 55,
+      role: "分支模型、svn:externals 解析、BranchPlan、svnmucc 命令生成",
+      pending: "未接 CLI；真实 SVN copy/commit 与写后校验" },
+    art: { name: "art", layer: "domain", status: "library", files: 10, loc: 1247, tests: 11,
+      role: "美术辅助：RGBA 操作、图集、PSD 边界、场景烘焙、资产检查",
+      pending: "未接 CLI；PSD / TexturePacker / Unity 实工具" },
+    ports: { name: "ports", layer: "contract", status: "wired", files: 9, loc: 1101, tests: 68,
+      role: "外部系统 Protocol：进程、源码、CI、秘密、对象存储、Unity、工作区",
+      pending: "无本地缺口" },
+    compatibility: { name: "compatibility", layer: "contract", status: "partial", files: 10, loc: 1396, tests: 30,
+      role: "旧客户端协议：assetbundledb 五库、六字段文件列表、换行策略与严格解析",
+      pending: "真实历史产物双跑与旧客户端 Parser 验收" },
+    integrations: { name: "integrations", layer: "adapter", status: "partial", files: 11, loc: 2828, tests: 70,
+      role: "外部适配器：SVN、Unity batch、Jenkins、Secrets、HTTP / ObjectStore、进程树",
+      pending: "真实 SVN / Jenkins / CDN / Unity 探针" },
+    configuration: { name: "configuration", layer: "cross", status: "wired", files: 5, loc: 1924, tests: 170,
+      role: "TOML Profile、覆盖链、校验与不可变配置模型",
+      pending: "无本地缺口" },
+    observability: { name: "observability", layer: "cross", status: "wired", files: 9, loc: 3063, tests: 139,
+      role: "结构化日志、上下文、失败模型、凭据脱敏与日志保留",
+      pending: "无本地缺口" }
+  };
+
+  var LAYERS = [
+    { id: "entry", title: "01 入口层", note: "spacetime-build 命令树", pkgs: ["cli"] },
+    { id: "orchestration", title: "02 编排层", note: "用例与组合根；服务显式注入", pkgs: ["application"] },
+    { id: "domain", title: "03 领域层", note: "纯 Python 领域与平台规划", pkgs: ["core", "resource", "release", "package", "services", "sdk", "branch", "art"] },
+    { id: "contract", title: "04 契约与兼容", note: "ports 定义边界；compatibility 产出旧协议", pkgs: ["ports", "compatibility"] },
+    { id: "adapter", title: "05 适配层", note: "真实外部系统只从这里进入", pkgs: ["integrations"] },
+    { id: "cross", title: "06 横切", note: "配置与日志被各层复用", pkgs: ["configuration", "observability"] }
+  ];
+
+  var DEPS = [
+    ["application", "cli", 1], ["application", "compatibility", 2], ["application", "core", 18],
+    ["application", "integrations", 3], ["application", "package", 1], ["application", "ports", 6],
+    ["application", "release", 21], ["art", "core", 9], ["art", "ports", 3], ["art", "resource", 1],
+    ["branch", "core", 1], ["branch", "ports", 1], ["cli", "application", 10],
+    ["cli", "compatibility", 2], ["cli", "configuration", 3], ["cli", "core", 10],
+    ["cli", "integrations", 2], ["cli", "observability", 6], ["cli", "package", 1],
+    ["cli", "ports", 3], ["cli", "release", 7], ["compatibility", "core", 8],
+    ["compatibility", "release", 5], ["configuration", "core", 4],
+    ["integrations", "configuration", 5], ["integrations", "core", 5],
+    ["integrations", "observability", 6], ["integrations", "ports", 27],
+    ["observability", "core", 1], ["package", "configuration", 4], ["package", "core", 15],
+    ["package", "ports", 9], ["package", "release", 1], ["ports", "configuration", 1],
+    ["ports", "observability", 2], ["release", "compatibility", 5], ["release", "core", 36],
+    ["release", "ports", 6], ["resource", "configuration", 1], ["resource", "core", 45],
+    ["resource", "ports", 2], ["resource", "release", 1], ["sdk", "core", 8],
+    ["services", "core", 6], ["services", "observability", 1], ["services", "ports", 3],
+    ["services", "resource", 1]
+  ];
+
+  var ANOMALIES = { "application>cli": true, "release>compatibility": true };
+  var selected = "release";
+
+  function el(tag, cls, text) {
+    var node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined && text !== null) node.textContent = text;
+    return node;
+  }
+
+  function layerOf(id) {
+    for (var i = 0; i < LAYERS.length; i += 1) {
+      if (LAYERS[i].id === id) return LAYERS[i].title;
+    }
+    return "";
+  }
+
+  var diagram = root.querySelector("#bsp-diagram");
+  var svg = root.querySelector("#bsp-edges");
+  var detail = root.querySelector("#bsp-detail");
+
+  LAYERS.forEach(function (layer) {
+    var band = el("section", "bsp-band");
+    var head = el("div", "bsp-band-head");
+    head.appendChild(el("span", "bsp-band-title", layer.title));
+    head.appendChild(el("span", "text-small text-muted", layer.note));
+    var grid = el("div", "viz-grid");
+    layer.pkgs.forEach(function (id) {
+      var pkg = PKGS[id];
+      var status = STATUS[pkg.status];
+      var button = el("button", "btn viz-tile");
+      button.type = "button";
+      button.dataset.pkg = id;
+      button.setAttribute("aria-pressed", "false");
+      button.setAttribute("aria-label", pkg.name + "，" + status.label + "，" + pkg.files + " 个文件");
+      var inner = el("span", "bsp-tile-inner");
+      var nameRow = el("span", "bsp-tile-name");
+      nameRow.appendChild(el("span", null, pkg.name));
+      var dot = el("span", "bsp-dot");
+      dot.style.background = status.color;
+      dot.setAttribute("aria-hidden", "true");
+      nameRow.appendChild(dot);
+      inner.appendChild(nameRow);
+      inner.appendChild(el("span", "bsp-tile-meta", status.label + " · " + pkg.files + " 文件 · " + pkg.loc.toLocaleString("en-US") + " 行"));
+      button.appendChild(inner);
+      grid.appendChild(button);
+    });
+    band.appendChild(head);
+    band.appendChild(grid);
+    diagram.appendChild(band);
+  });
+
+  function renderDetail(id) {
+    var pkg = PKGS[id];
+    var status = STATUS[pkg.status];
+    detail.replaceChildren();
+    var head = el("div", "bsp-detail-head");
+    head.appendChild(el("h2", null, pkg.name));
+    head.appendChild(el("span", "viz-badge", status.label));
+    detail.appendChild(head);
+    detail.appendChild(el("div", "text-small text-muted", layerOf(pkg.layer) + " · " + pkg.files + " 文件 · " + pkg.loc.toLocaleString("en-US") + " 行 · " + pkg.tests + " 测试"));
+    detail.appendChild(el("p", null, pkg.role));
+
+    var out = DEPS.filter(function (d) { return d[0] === id; }).sort(function (a, b) { return b[2] - a[2]; });
+    var inc = DEPS.filter(function (d) { return d[1] === id; }).sort(function (a, b) { return b[2] - a[2]; });
+    var outText = out.length ? out.map(function (d) { return d[1] + " ×" + d[2]; }).join(" · ") : "无";
+    var incText = inc.length ? inc.map(function (d) { return d[0] + " ×" + d[2]; }).join(" · ") : "无";
+
+    var rowOut = el("div", "bsp-kv text-small");
+    rowOut.appendChild(el("span", "bsp-kv-label", "依赖出"));
+    rowOut.appendChild(el("span", null, outText));
+    detail.appendChild(rowOut);
+
+    var rowIn = el("div", "bsp-kv text-small");
+    rowIn.appendChild(el("span", "bsp-kv-label", "被依赖"));
+    rowIn.appendChild(el("span", null, incText));
+    detail.appendChild(rowIn);
+
+    if (pkg.warn) {
+      detail.appendChild(el("div", "text-small", pkg.warn));
+    }
+    detail.appendChild(el("div", "text-small text-muted", "待闭环：" + pkg.pending));
+  }
+
+  function drawEdges() {
+    var width = diagram.clientWidth;
+    var height = diagram.clientHeight;
+    if (width < 20 || height < 20) return;
+    svg.setAttribute("width", String(width));
+    svg.setAttribute("height", String(height));
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.replaceChildren();
+
+    var ns = "http://www.w3.org/2000/svg";
+    var defs = document.createElementNS(ns, "defs");
+    var marker = document.createElementNS(ns, "marker");
+    marker.setAttribute("id", "bsp-arrow");
+    marker.setAttribute("viewBox", "0 0 8 8");
+    marker.setAttribute("refX", "7");
+    marker.setAttribute("refY", "4");
+    marker.setAttribute("markerWidth", "6");
+    marker.setAttribute("markerHeight", "6");
+    marker.setAttribute("orient", "auto-start-reverse");
+    var arrowPath = document.createElementNS(ns, "path");
+    arrowPath.setAttribute("d", "M0,0 L8,4 L0,8 z");
+    arrowPath.setAttribute("fill", "context-stroke");
+    marker.appendChild(arrowPath);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    var wrapRect = diagram.getBoundingClientRect();
+    function centerOf(id) {
+      var node = diagram.querySelector('button[data-pkg="' + id + '"]');
+      if (!node) return null;
+      var rect = node.getBoundingClientRect();
+      return { x: rect.left - wrapRect.left + rect.width / 2, y: rect.top - wrapRect.top + rect.height / 2 };
+    }
+
+    var edges = DEPS.filter(function (d) { return d[0] === selected || d[1] === selected; });
+    edges.sort(function (a, b) {
+      var aa = ANOMALIES[a[0] + ">" + a[1]] ? 1 : 0;
+      var bb = ANOMALIES[b[0] + ">" + b[1]] ? 1 : 0;
+      return aa - bb;
+    });
+
+    edges.forEach(function (dep) {
+      var from = centerOf(dep[0]);
+      var to = centerOf(dep[1]);
+      if (!from || !to) return;
+      var anomaly = Boolean(ANOMALIES[dep[0] + ">" + dep[1]]);
+      var group = document.createElementNS(ns, "g");
+      var line = document.createElementNS(ns, "line");
+      var dx = to.x - from.x;
+      var dy = to.y - from.y;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      var ux = dx / dist;
+      var uy = dy / dist;
+      line.setAttribute("x1", (from.x + ux * 24).toFixed(1));
+      line.setAttribute("y1", (from.y + uy * 24).toFixed(1));
+      line.setAttribute("x2", (to.x - ux * 28).toFixed(1));
+      line.setAttribute("y2", (to.y - uy * 28).toFixed(1));
+      line.setAttribute("stroke", anomaly ? "var(--destructive)" : "var(--muted-foreground)");
+      line.setAttribute("stroke-width", (1.4 + Math.min(dep[2], 36) / 20).toFixed(1));
+      line.setAttribute("stroke-opacity", anomaly ? "0.9" : "0.5");
+      line.setAttribute("marker-end", "url(#bsp-arrow)");
+      var title = document.createElementNS(ns, "title");
+      title.textContent = dep[0] + " → " + dep[1] + "：" + dep[2] + " 处导入" + (anomaly ? "（越层依赖）" : "");
+      line.appendChild(title);
+      group.appendChild(line);
+      svg.appendChild(group);
+    });
+  }
+
+  function select(id) {
+    selected = id;
+    Array.prototype.forEach.call(diagram.querySelectorAll("button[data-pkg]"), function (button) {
+      button.setAttribute("aria-pressed", button.dataset.pkg === id ? "true" : "false");
+    });
+    renderDetail(id);
+    drawEdges();
+  }
+
+  diagram.addEventListener("click", function (event) {
+    var button = event.target.closest('button[data-pkg]');
+    if (button) select(button.dataset.pkg);
+  });
+
+  var stages = [
+    ["01 配置与请求", "ApplicationRequest · BuildContext", "configuration · cli · application", "本地完成"],
+    ["02 任务规划", "TaskPlan → BuildGraph（环与输出冲突检查）", "resource · core", "本地完成"],
+    ["03 任务执行", "TaskResult → 产物路径与哈希校验", "core · integrations.unity", "本地完成 · Unity 实机待验收"],
+    ["04 构建清单", "BuildManifest（不可变，确定性生成）", "core", "本地完成"],
+    ["05 发布聚合", "ReleaseManifest → ReleaseBundle", "release", "本地完成"],
+    ["06 旧协议输出", "assetbundledb_*.txt · 六字段文件列表 · Redirect", "compatibility · release", "本地完成 · 旧客户端待验收"],
+    ["07 上传与验证", "UploadPlan → 对象上传 → 回读校验", "release · integrations", "本地完成 · 真实 CDN 待验收"],
+    ["08 激活与回滚", "CAS 更新版本入口", "release", "本地完成 · 生产存储待验收"],
+    ["09 客户端包体", "Android / iOS / Windows / IL2CPP / SDK", "package · services · sdk", "部分本地 · 工具链待验收"]
+  ];
+
+  var flowTable = el("table", "table table-sm");
+  var flowHead = el("thead");
+  var flowHeadRow = el("tr");
+  ["阶段", "产出", "实现模块", "状态"].forEach(function (text) {
+    flowHeadRow.appendChild(el("th", null, text));
+  });
+  flowHead.appendChild(flowHeadRow);
+  flowTable.appendChild(flowHead);
+  var flowBody = el("tbody");
+  stages.forEach(function (stage) {
+    var tr = el("tr");
+    var stageCell = el("td");
+    stageCell.appendChild(el("strong", null, stage[0]));
+    tr.appendChild(stageCell);
+    tr.appendChild(el("td", null, stage[1]));
+    tr.appendChild(el("td", "text-small text-muted", stage[2]));
+    tr.appendChild(el("td", "bsp-flow-status", stage[3]));
+    flowBody.appendChild(tr);
+  });
+  flowTable.appendChild(flowBody);
+  var flowWrap = el("div", "table-responsive");
+  flowWrap.appendChild(flowTable);
+  root.querySelector("#bsp-flow-table").appendChild(flowWrap);
+
+  var moduleTable = el("table", "table table-sm");
+  var moduleHead = el("thead");
+  var moduleHeadRow = el("tr");
+  ["包", "层级", "文件", "行", "测试", "状态"].forEach(function (text) {
+    moduleHeadRow.appendChild(el("th", null, text));
+  });
+  moduleHead.appendChild(moduleHeadRow);
+  moduleTable.appendChild(moduleHead);
+  var moduleBody = el("tbody");
+  LAYERS.forEach(function (layer) {
+    layer.pkgs.forEach(function (id) {
+      var pkg = PKGS[id];
+      var tr = el("tr");
+      tr.appendChild(el("td", null, pkg.name));
+      tr.appendChild(el("td", "text-muted", layer.title));
+      tr.appendChild(el("td", "text-end tabular-nums", String(pkg.files)));
+      tr.appendChild(el("td", "text-end tabular-nums", pkg.loc.toLocaleString("en-US")));
+      tr.appendChild(el("td", "text-end tabular-nums", String(pkg.tests)));
+      tr.appendChild(el("td", "bsp-flow-status", STATUS[pkg.status].label));
+      moduleBody.appendChild(tr);
+    });
+  });
+  moduleTable.appendChild(moduleBody);
+  var moduleWrap = el("div", "table-responsive");
+  moduleWrap.appendChild(moduleTable);
+  root.querySelector("#bsp-module-table").appendChild(moduleWrap);
+
+  root.querySelector('[role="tablist"]').addEventListener("click", function (event) {
+    var tab = event.target.closest('[role="tab"]');
+    if (!tab) return;
+    if (tab.id === "bsp-tab-layers") {
+      setTimeout(drawEdges, 30);
+    }
+  });
+
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(function () { drawEdges(); }).observe(diagram);
+  } else {
+    window.addEventListener("resize", drawEdges);
+  }
+
+  select(selected);
+})();
+</script>
+</div>
