@@ -15,6 +15,5 @@ venv/
 
 .worktrees/
 
-# 本地 IDE 与 Codex 临时分阶段目录
-.idea/
+# 本地 Codex 临时分阶段目录
 .codex_*_staging/
