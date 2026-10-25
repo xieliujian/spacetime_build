@@ -14,3 +14,7 @@ venv/
 /src/*.egg-info/
 
 .worktrees/
+
+# 本地 IDE 与 Codex 临时分阶段目录
+.idea/
+.codex_*_staging/
